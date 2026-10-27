@@ -143,6 +143,7 @@ a.link { color: var(--accent); font-weight: 600; }
 .cell .p { font: 600 12px/1 var(--f-num); letter-spacing: .04em; text-transform: uppercase; color: var(--ok); }
 .cell.changed { box-shadow: 0 0 0 2px var(--accent); }
 .cell.hs { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); border: 1px solid var(--accent); }
+.cell .n { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cell .o { font: 700 11px/1 var(--f-num); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn { border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 600; background: var(--accent); color: var(--accent-ink); }
@@ -204,18 +205,31 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
 .done button.voll[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: #fff; }
 .done button.reduziert[aria-pressed="true"] { background: var(--mine); border-color: var(--mine-line); }
 .done button.ausgefallen[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: #fff; }
+/* Termine */
+.termin { width: 100%; display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+.termin.hl { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.termin.vorbei { opacity: .6; }
+.tdat { display: grid; justify-items: center; line-height: 1; }
+.tdat b { font: 700 26px/1.05 var(--f-num); }
+.tdat span { font: 700 13px/1 var(--f-num); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tinfo { display: grid; gap: 2px; min-width: 0; }
+.tinfo b { font-size: 17px; overflow-wrap: anywhere; }
+.tart { font: 700 12px/1 var(--f-num); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tcount { font: 700 15px/1.1 var(--f-num); color: var(--accent); text-align: right; white-space: nowrap; }
 .sick { background: var(--bad-bg); color: var(--bad); border-radius: 12px; padding: 10px 12px; font-weight: 600; }
 
 /* Reiter unten */
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.tabs .wrap { display: grid; grid-template-columns: repeat(4, 1fr); }
+.tabs .wrap { display: grid; grid-template-columns: repeat(5, 1fr); }
 .tabs button { background: none; border: 0; padding: 9px 0 10px; display: grid; justify-items: center; gap: 3px; color: var(--muted); font: 600 13px/1 var(--f-body); }
 .tabs svg { width: 24px; height: 24px; }
 .tabs button[aria-current="page"] { color: var(--accent); }
 
 /* Auswahl unten (Zeit eintragen) */
 .scrim { position: fixed; inset: 0; z-index: 20; background: rgba(8,10,15,.45); display: grid; align-items: end; }
-.sheet { background: var(--surface); border-radius: 18px 18px 0 0; padding-block: 16px calc(18px + env(safe-area-inset-bottom, 0px)); }
+.sheet { background: var(--surface); border-radius: 18px 18px 0 0; padding-block: 16px calc(18px + env(safe-area-inset-bottom, 0px)); max-height: 92vh; overflow-y: auto; }
+.sheet .fromto { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sheet input.mine-in { font-size: 16px; }
 .sheet .wrap { display: grid; gap: 12px; }
 .sheet h3 { margin: 0; font: 800 19px/1.2 var(--f-display); }
 .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -248,6 +262,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   <button data-tab="heute" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Heute</button>
   <button data-tab="woche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Woche</button>
   <button data-tab="zeiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>Zeiten</button>
+  <button data-tab="termine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/></svg>Termine</button>
   <button data-tab="werte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Werte</button>
 </div></nav>
 <div id="overlay"></div>
@@ -264,7 +279,12 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   const INTENSITAET = ['intensiv', 'mittel', 'locker'];
   // Training erledigt? Nur die Auswahl, die Auswertung in % sieht nur Hannes.
   const ERLEDIGT = [['voll', '✓ Voll'], ['reduziert', '½ Reduziert'], ['ausgefallen', '✕ Ausgefallen']];
-  const WUNSCH = ['Gym', 'Plyos', 'Sprints', 'Grundlage/Ausdauer', 'BMX-Track', 'Regeneration', 'Dehnen/Mobility'];
+  const WUNSCH = ['Gym', 'Plyos', 'Sprints', 'Grundlage/Ausdauer', 'BMX-Track', 'Regeneration', 'Dehnen/Mobility', 'Kurztraining (wenig Zeit)'];
+  const TERMIN_ARTEN = ['Rennen', 'Trainingslager', 'Camp', 'Sonstiges'];
+  const TERMIN_WICHTIG = ['Saison-Highlight', 'Sehr wichtig', 'Mäßig'], TERMIN_INTENSITAET = ['hoch', 'mittel', 'gering'];
+  const mitWichtig = art => art === 'Rennen' || art === 'Sonstiges', mitIntensitaet = art => !!art && art !== 'Rennen';
+  const terminStufen = t => [mitWichtig(t.art) && t.wichtig, mitIntensitaet(t.art) && t.intensitaet && 'Intensität ' + t.intensitaet].filter(Boolean).join(' · ');
+  const MON_KURZ = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
   // Adresse des Google-Skripts (Bereitstellen → Web-App-URL). Bleibt gleich, solange nur "Neue Version" bereitgestellt wird.
   const APP_URL = 'https://script.google.com/macros/s/AKfycbwybzfE0TMqvge98_Q3PMF_ZnP4q3zyIKHXGNYH52ovo4w_5kGLe1qTj-b9zXq1XLtp/exec';
   const echt = !window.DEMO;
@@ -279,6 +299,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       let anfrage;
       if (fn === 'speichern') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], woche: args[1], aenderungen: args[2] }) });
       else if (fn === 'standardSpeichern') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], werte: args[1] }) });
+      else if (fn === 'termin') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], termin: args[1] }) });
+      else if (fn === 'terminLoeschen') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], id: args[1] }) });
       else if (fn === 'erledigt') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], datum: args[1], halbtag: args[2], titel: args[3], status: args[4] }) });
       else anfrage = fetch(APP_URL + '?a=' + fn + '&k=' + encodeURIComponent(args[0]) + (fn === 'woche' ? '&name=' + encodeURIComponent(args[1]) : ''));
       return anfrage
@@ -434,7 +456,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       [['vm', 'Vormittag'], ['nm', 'Nachmittag']].forEach(([h, lang]) => {
         const s = t[h], v = s.zeit, geaendert = S.geaendert[w.name + '|' + s.zelle], a = wahlAnzeige(v);
         html += `<button type="button" class="cell ${a.kl} ${geaendert ? 'changed' : ''}" data-slot="${i}|${h}" aria-label="${esc(t.tag + ' ' + lang + ': ' + (v ? wahlKurz(v) : 'leer'))}">
-          ${a.oben ? `<span class="o">${esc(a.oben)}</span>` : ''}<span class="v">${v ? esc(a.text) : '<span class="muted">auswählen</span>'}</span>${hatPlan(s) ? '<span class="p">Plan steht</span>' : ''}</button>`;
+          ${a.oben ? `<span class="o">${esc(a.oben)}</span>` : ''}<span class="v">${v ? esc(a.text) : '<span class="muted">auswählen</span>'}</span>${a.notiz ? `<span class="n">✎ ${esc(a.notiz)}</span>` : ''}${hatPlan(s) ? '<span class="p">Plan steht</span>' : ''}</button>`;
       });
     });
     html += '</div></div><div class="row-btns">';
@@ -444,25 +466,31 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     return html;
   }
   // Was der Athlet pro Halbtag wählt. Gespeichert als Text im gelben Feld, z. B. "Angeleitet: BMX-Bahn, intensiv".
+  // Mit Anmerkung für Hannes: "High Spirit: Gym | erst ab 17 Uhr"
   function wahlLesen(v) {
-    const s = String(v || '').trim();
-    if (!s) return { art: '' };
-    if (/^keine/i.test(s)) return { art: 'keine' };
+    const teile = String(v || '').split(' | '), s = teile[0].trim(), notiz = teile.slice(1).join(' | ').trim();
+    if (!s) return { art: notiz ? 'frei' : '', text: '', notiz: notiz };
+    if (/^keine/i.test(s)) return { art: 'keine', notiz: notiz };
     let m = s.match(/^Angeleitet:\s*([^,]+?)\s*(?:,\s*(.+))?$/i);
-    if (m) return { art: 'angeleitet', was: m[1], int: m[2] || '' };
+    if (m) return { art: 'angeleitet', was: m[1], int: m[2] || '', notiz: notiz };
     m = s.match(/^High Spirit:\s*(.+)$/i);
-    if (m) return { art: 'hs', was: m[1].trim() };
-    return { art: 'frei', text: s };
+    if (m) return { art: 'hs', was: m[1].trim(), notiz: notiz };
+    return { art: 'frei', text: s, notiz: notiz };
   }
+  function wahlText(z) {
+    const haupt = z.art === 'keine' ? 'Keine Zeit' : z.art === 'angeleitet' ? 'Angeleitet: ' + z.was + ', ' + z.int : z.art === 'hs' ? 'High Spirit: ' + z.was : z.text || '';
+    return haupt + (z.notiz ? ' | ' + z.notiz : '');
+  }
+  const wahlFertig = z => z.art === 'keine' || z.art === 'frei' || (z.art === 'hs' && !!z.was) || (z.art === 'angeleitet' && !!z.was && !!z.int);
   function wahlAnzeige(v) {
-    const w = wahlLesen(v);
-    if (w.art === 'keine') return { kl: 'none', oben: '', text: 'Keine Zeit' };
-    if (w.art === 'angeleitet') return { kl: 'filled', oben: 'Angeleitet', text: w.was + (w.int ? ' · ' + w.int : '') };
-    if (w.art === 'hs') return { kl: 'hs', oben: 'High Spirit', text: w.was };
-    if (w.art === 'frei') return { kl: 'filled', oben: '', text: w.text };
-    return { kl: '', oben: '', text: '' };
+    const w = wahlLesen(v), n = w.notiz || '';
+    if (w.art === 'keine') return { kl: 'none', oben: '', text: 'Keine Zeit', notiz: n };
+    if (w.art === 'angeleitet') return { kl: 'filled', oben: 'Angeleitet', text: w.was + (w.int ? ' · ' + w.int : ''), notiz: n };
+    if (w.art === 'hs') return { kl: 'hs', oben: 'High Spirit', text: w.was, notiz: n };
+    if (w.art === 'frei') return { kl: 'filled', oben: '', text: w.text, notiz: n };
+    return { kl: '', oben: '', text: '', notiz: '' };
   }
-  const wahlKurz = v => { const a = wahlAnzeige(v); return (a.oben ? a.oben + ': ' : '') + a.text; };
+  const wahlKurz = v => { const a = wahlAnzeige(v); return (a.oben ? a.oben + ': ' : '') + a.text + (a.notiz ? ' (' + a.notiz + ')' : ''); };
   function slotEditor(i, h, z) {
     const w = S.d.daten[S.wocheZ], t = w.tage[i], s = t[h], vm = h === 'vm';
     z = z || wahlLesen(s.zeit);
@@ -474,32 +502,98 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       if (z.was) html += `<div class="field"><span>Wie intensiv?</span><div class="feel">${INTENSITAET.map(x => knopf('data-int', x, x, z.int === x)).join('')}</div></div>`;
     }
     if (z.art === 'hs') html += `<div class="field"><span>Wunschtraining</span><div class="feel">${WUNSCH.map(x => knopf('data-was', x, x, z.was === x)).join('')}</div></div>`;
-    html += '<div class="row-btns"><button class="btn sec wide" type="button" data-leer>Feld leeren</button><button class="btn sec wide" type="button" id="zu">Abbrechen</button></div>';
+    html += `<label class="field" for="anm"><span>Anmerkung für Hannes <span class="muted">(freiwillig)</span></span><input class="mine-in" id="anm" maxlength="80" autocomplete="off" placeholder="z. B. erst ab 17 Uhr" value="${esc(z.notiz || '')}"></label>
+      <button class="btn" type="button" id="ok" ${wahlFertig(z) ? '' : 'disabled'}>Übernehmen</button>
+      <div class="row-btns"><button class="btn sec wide" type="button" data-leer>Feld leeren</button><button class="btn sec wide" type="button" id="zu">Abbrechen</button></div>`;
     $('#overlay').innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh"><div class="wrap">${html}</div></div></div>`;
     const zu = () => { $('#overlay').innerHTML = ''; };
-    const fertig = wert => { setzeZeit(w, s, wert); zu(); };
+    const notiz = () => $('#anm').value.replace(/\|/g, '/').trim();
     $('#scrim').addEventListener('click', e => {
       if (e.target.id === 'scrim' || e.target.id === 'zu') return zu();
-      if (e.target.closest('[data-leer]')) return fertig('');
+      if (e.target.closest('[data-leer]')) { setzeZeit(w, s, ''); return zu(); }
+      if (e.target.id === 'ok') { z.notiz = notiz(); setzeZeit(w, s, wahlText(z)); return zu(); }
       const art = e.target.closest('[data-art]');
-      if (art) {
-        const a = art.dataset.art;
-        if (a === 'keine') return fertig('Keine Zeit');
-        return slotEditor(i, h, a === z.art ? z : { art: a, was: '', int: '' });
-      }
+      if (art) { const a = art.dataset.art; return slotEditor(i, h, a === z.art ? Object.assign(z, { notiz: notiz() }) : { art: a, was: '', int: '', notiz: notiz() }); }
       const was = e.target.closest('[data-was]');
-      if (was) {
-        if (z.art === 'hs') return fertig('High Spirit: ' + was.dataset.was);
-        return slotEditor(i, h, { art: 'angeleitet', was: was.dataset.was, int: z.int });
-      }
+      if (was) return slotEditor(i, h, Object.assign(z, { was: was.dataset.was, notiz: notiz() }));
       const int = e.target.closest('[data-int]');
-      if (int) fertig('Angeleitet: ' + z.was + ', ' + int.dataset.int);
+      if (int) return slotEditor(i, h, Object.assign(z, { int: int.dataset.int, notiz: notiz() }));
     });
   }
   function setzeZeit(w, s, wert) {
     if (s.zeit === wert) return;
     s.zeit = wert; S.geaendert[w.name + '|' + s.zelle] = true;
     merken(w.name, s.zelle, wert); render();
+  }
+
+  // ---------- Termine ----------
+  const tageBis = iso => Math.round((isoDate(iso) - isoDate(S.d.heute)) / 86400000);
+  function viewTermine() {
+    let html = '<h2>Meine Termine</h2>';
+    if (!S.d.rechte.termine) return html + '<div class="card"><div class="empty">Termine eintragen ist für dich gerade nicht freigeschaltet.</div></div>';
+    html += '<div class="card"><div class="muted">Trag deine Rennen, Trainingslager, Camps und sonstigen Termine ein. So kann Hannes dein Training darauf abstimmen.</div><button class="btn" type="button" id="neuTermin">+ Termin eintragen</button></div>';
+    const alle = (S.d.termine || []).slice().sort((x, y) => x.von < y.von ? -1 : x.von > y.von ? 1 : 0);
+    const kommend = alle.filter(t => (t.bis || t.von) >= S.d.heute), vorbei = alle.filter(t => (t.bis || t.von) < S.d.heute).reverse().slice(0, 5);
+    if (!kommend.length) html += '<div class="card"><div class="empty">Noch keine kommenden Termine.</div></div>';
+    const naechstesTop = kommend.find(t => t.wichtig === 'Saison-Highlight');
+    html += kommend.map(t => terminKarte(t, t === naechstesTop)).join('');
+    if (vorbei.length) html += '<h2>Vorbei</h2>' + vorbei.map(t => terminKarte(t)).join('');
+    return html;
+  }
+  function terminKarte(t, top) {
+    const n = tageBis(t.von), laeuft = n < 0 && t.bis && t.bis >= S.d.heute;
+    const wann = n > 1 ? 'in ' + n + ' Tagen' : n === 1 ? 'morgen' : n === 0 ? 'heute' : laeuft ? 'läuft' : '';
+    const d = isoDate(t.von);
+    const zeit = kurzDatum(t.von) + (t.bis && t.bis !== t.von ? '–' + kurzDatum(t.bis) : '');
+    return `<button type="button" class="termin ${top ? 'hl' : ''} ${(t.bis || t.von) < S.d.heute ? 'vorbei' : ''}" data-termin="${esc(t.id)}">
+      <div class="tdat"><b>${d.getDate()}</b><span>${MON_KURZ[d.getMonth()]}</span></div>
+      <div class="tinfo"><span class="tart">${esc(t.art)}${terminStufen(t) ? ' · ' + esc(terminStufen(t)) : ''}</span><b>${esc(t.name)}</b><span class="muted">${zeit}${t.notiz ? ' · ' + esc(t.notiz) : ''}</span></div>
+      <div class="tcount">${wann}</div></button>`;
+  }
+  function terminEditor(t) {
+    const neu = !t.id;
+    const knopf = (attr, wert, label, an) => `<button type="button" ${attr}="${esc(wert)}" aria-pressed="${!!an}">${esc(label)}</button>`;
+    let html = `<h3 id="sh">${neu ? 'Neuer Termin' : 'Termin ändern'}</h3>
+      <div class="field"><span>Was?</span><div class="feel">${TERMIN_ARTEN.map(a => knopf('data-tart', a, a, t.art === a)).join('')}</div></div>
+      <label class="field" for="tname"><span>Name</span><input class="mine-in" id="tname" maxlength="80" autocomplete="off" placeholder="${t.art === 'Rennen' ? 'z. B. Austria Cup Wien' : t.art === 'Sonstiges' ? 'z. B. Schulskikurs' : 'z. B. Camp Mallorca'}" value="${esc(t.name || '')}"></label>
+      <div class="fromto"><label class="field" for="tvon"><span>Am / ab</span><input class="mine-in" type="date" id="tvon" value="${esc(t.von || '')}"></label><label class="field" for="tbis"><span>bis <span class="muted">(freiwillig)</span></span><input class="mine-in" type="date" id="tbis" value="${esc(t.bis || '')}"></label></div>`;
+    if (mitWichtig(t.art)) html += `<div class="field"><span>Wie wichtig?</span><div class="feel">${TERMIN_WICHTIG.map(x => knopf('data-twichtig', x, x, t.wichtig === x)).join('')}</div></div>`;
+    if (mitIntensitaet(t.art)) html += `<div class="field"><span>${t.art === 'Sonstiges' ? 'Wie anstrengend?' : 'Wie intensiv?'}</span><div class="feel">${TERMIN_INTENSITAET.map(x => knopf('data-tint', x, x, t.intensitaet === x)).join('')}</div></div>`;
+    html += `<label class="field" for="tnotiz"><span>Anmerkung <span class="muted">(freiwillig)</span></span><input class="mine-in" id="tnotiz" maxlength="200" autocomplete="off" value="${esc(t.notiz || '')}"></label>
+      <button class="btn" type="button" id="tok">Speichern</button>
+      <div class="row-btns">${neu ? '' : '<button class="btn sec wide" type="button" id="tweg">Löschen</button>'}<button class="btn sec wide" type="button" id="zu">Abbrechen</button></div>`;
+    $('#overlay').innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh"><div class="wrap">${html}</div></div></div>`;
+    const zu = () => { $('#overlay').innerHTML = ''; };
+    const lesen = () => Object.assign(t, { name: $('#tname').value.trim(), von: $('#tvon').value, bis: $('#tbis').value, notiz: $('#tnotiz').value.trim() });
+    $('#scrim').addEventListener('click', e => {
+      if (e.target.id === 'scrim' || e.target.id === 'zu') return zu();
+      const a = e.target.closest('[data-tart]');
+      if (a) { lesen(); t.art = a.dataset.tart; return terminEditor(t); }
+      const wi = e.target.closest('[data-twichtig]');
+      if (wi) { lesen(); t.wichtig = t.wichtig === wi.dataset.twichtig ? '' : wi.dataset.twichtig; return terminEditor(t); }
+      const it = e.target.closest('[data-tint]');
+      if (it) { lesen(); t.intensitaet = t.intensitaet === it.dataset.tint ? '' : it.dataset.tint; return terminEditor(t); }
+      if (e.target.id === 'tok') {
+        lesen();
+        if (!t.art) return toast('Bitte wählen: Rennen, Trainingslager, Camp oder Sonstiges.');
+        if (!mitWichtig(t.art)) t.wichtig = '';
+        if (!mitIntensitaet(t.art)) t.intensitaet = '';
+        if (!t.name) return toast('Bitte einen Namen eintragen.');
+        if (!t.von) return toast('Bitte ein Datum wählen.');
+        if (t.bis && t.bis < t.von) return toast('Das Enddatum liegt vor dem Beginn.');
+        zu(); terminSenden('termin', t); return;
+      }
+      if (e.target.id === 'tweg') { zu(); terminSenden('terminLoeschen', t); }
+    });
+  }
+  function terminSenden(fn, t) {
+    const vorher = (S.d.termine || []).slice();
+    let liste = vorher.filter(x => x.id !== t.id);
+    if (fn === 'termin') liste.push(Object.assign({}, t, { id: t.id || 'neu' + Date.now() }));
+    S.d.termine = liste; render(); status('Speichert …');
+    api(fn, S.k, fn === 'termin' ? t : t.id)
+      .then(r => { if (Array.isArray(r)) { S.d.termine = r; render(); } status('Gespeichert', 'ok'); toast(echt ? (fn === 'termin' ? 'Termin gespeichert' : 'Termin gelöscht') : 'Vorschau: würde jetzt gespeichert'); })
+      .catch(err => { S.d.termine = vorher; render(); status('Nicht gespeichert', 'err'); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
   }
 
   // ---------- Werte ----------
@@ -612,7 +706,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const v = $('#view');
     if (S.tab === 'woche') laden(S.wocheW);
     if (S.tab === 'zeiten') laden(S.wocheZ);
-    v.innerHTML = { heute: viewHeute, woche: viewWoche, zeiten: viewZeiten, werte: viewWerte }[S.tab]();
+    v.innerHTML = { heute: viewHeute, woche: viewWoche, zeiten: viewZeiten, termine: viewTermine, werte: viewWerte }[S.tab]();
     document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === S.tab ? 'page' : 'false'));
   }
 
@@ -628,6 +722,9 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const ok = e.target.closest('[data-ok]');
     if (ok) { const z = ok.dataset.ok, f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === z), p = S.pruef[z]; delete S.pruef[z];
       testSpeichern(f, t, p.neu, 'vorher ' + p.ref + ', Athlet hat bestätigt'); return; }
+    if (e.target.id === 'neuTermin') { terminEditor({ art: '', name: '', von: '', bis: '', wichtig: '', intensitaet: '', notiz: '' }); return; }
+    const tm = e.target.closest('[data-termin]');
+    if (tm) { const t = (S.d.termine || []).find(x => x.id === tm.dataset.termin); if (t) terminEditor(Object.assign({}, t)); return; }
     const dn = e.target.closest('[data-done]');
     if (dn) {
       const [datum, halb, id] = dn.dataset.done.split('|'), key = datum + '|' + halb;
