@@ -155,6 +155,13 @@ a.link { color: var(--accent); font-weight: 600; }
 .group { display: grid; gap: 0; }
 .val { display: grid; grid-template-columns: 1fr 110px; gap: 4px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .card-h + .val { border-top: 0; }
+.std { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; text-align: left; width: 100%; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: inherit; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.std small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.std .box { flex: none; width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 6px; display: grid; place-items: center; font-size: 15px; line-height: 1; }
+.std.on { border-color: var(--ok, #2e7d32); }
+.std.on .box { background: var(--ok, #2e7d32); border-color: var(--ok, #2e7d32); color: #fff; }
+.std.warn { border-color: #e0a100; background: rgba(224,161,0,.08); }
+.std.warn .box { border-color: #e0a100; }
 .val label { font-weight: 600; min-width: 0; }
 .val label small { display: block; font-weight: 400; color: var(--muted); font-size: 14px; }
 .inp { display: flex; align-items: center; gap: 6px; }
@@ -313,6 +320,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       else if (fn === 'standardSpeichern') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], werte: args[1] }) });
       else if (fn === 'termin') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], termin: args[1] }) });
       else if (fn === 'terminLoeschen') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], id: args[1] }) });
+      else if (fn === 'bedingung') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], woche: args[1], bereich: args[2], name: args[3], erfuellt: args[4] }) });
       else if (fn === 'voiceGesendet') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0] }) });
       else if (fn === 'videoGesendet') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], id: args[1] }) });
       else if (fn === 'erledigt') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], datum: args[1], halbtag: args[2], titel: args[3], status: args[4] }) });
@@ -651,6 +659,12 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   // ---------- Werte ----------
   const normK = x => String(x || '').split(/\s{2,}/)[0].replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
   const schluessel = t => normK(t.bereich) + '|' + normK(t.name);
+  // Anzeigename in der App; im Sheet bleibt der Name unverändert (Freigaben, Dashboard)
+  const testName = n => {
+    const x = String(n).trim(), h = /hometrack|home-track/i.test(x) || /^gate/i.test(x);
+    const kern = /^gate/i.test(x) ? 'Start (Gate)' : /first\s*straight/i.test(x) ? 'First Straight' : /half\s*-?\s*lap/i.test(x) ? 'Half-Lap' : /full\s*-?\s*lap/i.test(x) ? 'Full-Lap' : x;
+    return h ? kern + ' · Home-Track' : kern;
+  };
   const zahl = x => { const s = String(x || '').trim(), m = s.match(/^(\d{1,2}):(\d{2})$/); if (m) return Number(m[1]) + Number(m[2]) / 60; const n = Number(s.replace(',', '.')); return s && isFinite(n) ? n : null; };
   const deZahl = (n, st) => n.toLocaleString('de-DE', { maximumFractionDigits: st == null ? 2 : st });
   const niedrigerBesser = e => /sek|min\s*\//i.test(e);
@@ -674,10 +688,11 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
         const id = 'v_' + t.zelle, pace = /pace/i.test(t.name), k = schluessel(t), offen = S.chartOffen === k;
         const last = t.zuletzt ? `Zuletzt: ${esc(t.zuletzt)} ${esc(einheitKurz(t.einheit))} (Woche ${esc(t.zuletztWoche)})` : 'Noch kein früherer Wert';
         const p = S.pruef[t.zelle];
-        html += `<div class="val"><label for="${id}">${esc(t.name)}${t.info ? `<small>${esc(t.info)}</small>` : ''}</label>
+        html += `<div class="val"><label for="${id}">${esc(testName(t.name))}${t.info ? `<small>${esc(t.info)}</small>` : ''}</label>
           <div class="inp"><input id="${id}" data-test="${esc(t.zelle)}" inputmode="${pace ? 'text' : 'decimal'}" placeholder="${pace ? '4:30' : '–'}" value="${esc(p ? p.neu : t.wert)}" autocomplete="off"></div>
           <div class="unit-l">${esc(t.einheit)}</div>
           <div class="last"><span>${last}</span><button type="button" class="vbtn" data-chart="${esc(k)}" aria-expanded="${offen}">${offen ? 'Verlauf zu' : 'Verlauf'}</button></div>
+          ${t.bedingung !== undefined ? `<button type="button" class="std${t.bedingung ? ' on' : t.wert ? ' warn' : ''}" data-std="${esc(t.zelle)}" aria-pressed="${t.bedingung}"><span class="box">${t.bedingung ? '✓' : ''}</span><span>Standardbedingungen erfüllt<small>Kein starker Wind, trockene Strecke, gleicher Untergrund</small></span></button>` : ''}
           ${p ? `<div class="check" role="alert"><b>Stimmt das?</b> Letztes Mal ${esc(p.ref)}, jetzt ${esc(p.neu)} ${esc(einheitKurz(t.einheit))}. Das ist ein großer Sprung.
             <div class="row-btns"><button class="btn" type="button" data-ok="${esc(t.zelle)}">Ja, stimmt</button><button class="btn sec" type="button" data-fix="${esc(t.zelle)}">Korrigieren</button></div></div>` : ''}
           ${offen ? `<div class="chart">${chartBox(t, k)}</div>` : ''}</div>`;
@@ -714,7 +729,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const neutral = /maximalpuls/i.test(t.name);   // höher ist hier nicht automatisch besser
     return `<div class="chart-h"><span class="delta ${gleich || neutral ? '' : besser ? 'up' : 'down'}">${gleich ? 'gleich wie am Anfang' : diffText + ' seit ' + esc(pts[0].w) + '.'}</span>
       <div class="seg" role="group" aria-label="Anzeige"><button type="button" data-modus="${esc(k)}|wert" aria-pressed="${modus === 'wert'}">${esc(e)}</button><button type="button" data-modus="${esc(k)}|prozent" aria-pressed="${modus === 'prozent'}">%</button></div></div>
-      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Verlauf ${esc(t.name)}">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Verlauf ${esc(testName(t.name))}">
         ${modus === 'prozent' ? `<line x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" class="c0"/>` : ''}
         <path d="${flaeche}" class="ca"/><path d="${linie}" class="cline"/>
         ${ys.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${i === ys.length - 1 ? 5 : 3}" class="${i === ys.length - 1 ? 'cdot end' : 'cdot'}"/>`).join('')}
@@ -774,6 +789,13 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const ok = e.target.closest('[data-ok]');
     if (ok) { const z = ok.dataset.ok, f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === z), p = S.pruef[z]; delete S.pruef[z];
       testSpeichern(f, t, p.neu, 'vorher ' + p.ref + ', Athlet hat bestätigt'); return; }
+    const sb = e.target.closest('[data-std]');
+    if (sb) { const f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === sb.dataset.std), alt = t.bedingung;
+      t.bedingung = !alt; render(); status('Speichert …');
+      api('bedingung', S.k, f.w.name, t.bereich, t.name, t.bedingung)
+        .then(() => { status('Gespeichert', 'ok'); toast(echt ? 'Gespeichert' : 'Vorschau: würde jetzt gespeichert'); })
+        .catch(err => { t.bedingung = alt; render(); status('Nicht gespeichert', 'err'); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
+      return; }
     const ab = e.target.closest('[data-abhaken]'); if (ab) { abhaken(ab.dataset.abhaken); return; }
     if (e.target.id === 'neuTermin') { terminEditor({ art: '', name: '', von: '', bis: '', wichtig: '', intensitaet: '', notiz: '' }); return; }
     const tm = e.target.closest('[data-termin]');
@@ -826,6 +848,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   });
   function testSpeichern(f, t, wert, hinweis) {
     const alt = t.wert; t.wert = wert;
+    if (wert && t.bedingung === false) setTimeout(() => toast('Gespeichert. Bitte noch bestätigen: Standardbedingungen erfüllt?'), 1600);
     S.hinweise[t.zelle] = hinweis;
     merken(f.w.name, t.zelle, wert);
     if (S.verlauf) {   // eigenen neuen Wert gleich im Verlauf zeigen
