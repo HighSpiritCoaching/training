@@ -11,7 +11,6 @@
 <meta name="theme-color" content="#1b1f2a">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<link rel="manifest" href="manifest.webmanifest">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -216,7 +215,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
 <body>
 <header class="top"><div class="wrap">
   <img class="mark" src="icon-192.png" alt="">
-  <div class="who"><b id="hallo">HSC Training</b><span id="datum"></span></div>
+  <div class="who"><b id="hallo">High Spirit</b><span id="datum"></span></div>
   <div class="status" id="status" hidden></div>
 </div></header>
 <div class="demo" id="demo" hidden><div class="wrap">Vorschau mit Lenas fiktiven Testdaten. Du kannst alles antippen, gespeichert wird hier nichts.</div></div>
@@ -652,7 +651,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     S.k = new URLSearchParams(location.search).get('k') || '';
     if (!S.k) { try { S.k = localStorage.getItem('hs_k') || ''; } catch (e) {} }
     if (S.k) api('start', S.k).then(d => { try { localStorage.setItem('hs_k', S.k); } catch (e) {} los(d); }).catch(fehler);
-    else fehler('Bitte öffne deinen persönlichen Link von Hannes.');
+    else fehler('Bitte öffne deinen persönlichen Link von Hannes (in Safari bzw. Chrome) und leg ihn von dort neu auf den Startbildschirm.');
   }
 })();
 </script>
