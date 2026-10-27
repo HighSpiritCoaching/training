@@ -155,6 +155,7 @@ a.link { color: var(--accent); font-weight: 600; }
 .group { display: grid; gap: 0; }
 .val { display: grid; grid-template-columns: 1fr 110px; gap: 4px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .card-h + .val { border-top: 0; }
+.folge { grid-column: 1 / -1; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13px; color: var(--muted); }
 .std { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; text-align: left; width: 100%; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: inherit; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .std small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
 .std .box { flex: none; width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 6px; display: grid; place-items: center; font-size: 15px; line-height: 1; }
@@ -511,8 +512,10 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (w.alt) return html + '<div class="card"><div class="empty">Diese Woche ist noch im alten Format.</div></div>';
     if (!S.d.rechte.zeiten) return html + '<div class="card"><div class="empty">Zeiten eintragen ist für dich gerade nicht freigeschaltet.</div></div>';
     html += '<div class="card"><div class="grid"><div></div><div class="gh">Vormittag</div><div class="gh">Nachmittag</div>';
-    w.tage.forEach((t, i) => {
-      html += `<div class="gd"><b>${TAGE_KURZ[i]}</b><span>${kurzDatum(t.datum)}</span></div>`;
+    zTage(w).forEach((t, i) => {
+      html += t.folge
+        ? `<div class="folge">Montag danach – zählt schon zur nächsten Woche. Bitte gleich mit eintragen.</div><div class="gd"><b>Mo</b><span>${kurzDatum(t.datum)}</span></div>`
+        : `<div class="gd"><b>${TAGE_KURZ[i]}</b><span>${kurzDatum(t.datum)}</span></div>`;
       [['vm', 'Vormittag'], ['nm', 'Nachmittag']].forEach(([h, lang]) => {
         const s = t[h], v = s.zeit, geaendert = S.geaendert[w.name + '|' + s.zelle], a = wahlAnzeige(v);
         html += `<button type="button" class="cell ${a.kl} ${geaendert ? 'changed' : ''}" data-slot="${i}|${h}" aria-label="${esc(t.tag + ' ' + lang + ': ' + (v ? wahlKurz(v) : 'leer'))}">
@@ -551,11 +554,13 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     return { kl: '', oben: '', text: '', notiz: '' };
   }
   const wahlKurz = v => { const a = wahlAnzeige(v); return (a.oben ? a.oben + ': ' : '') + a.text + (a.notiz ? ' (' + a.notiz + ')' : ''); };
+  // Zeiten: die 7 Tage plus der Montag danach (steht im Sheet am Ende der Woche, AK–AO)
+  const zTage = w => w.folgeMontag ? w.tage.concat([w.folgeMontag]) : w.tage;
   function slotEditor(i, h, z) {
-    const w = S.d.daten[S.wocheZ], t = w.tage[i], s = t[h], vm = h === 'vm';
+    const w = S.d.daten[S.wocheZ], t = zTage(w)[i], s = t[h], vm = h === 'vm';
     z = z || wahlLesen(s.zeit);
     const knopf = (attr, wert, label, an) => `<button type="button" ${attr}="${esc(wert)}" aria-pressed="${!!an}">${esc(label)}</button>`;
-    let html = `<h3 id="sh">${esc(t.tag)} ${vm ? 'Vormittag' : 'Nachmittag'}</h3>
+    let html = `<h3 id="sh">${esc(t.tag)} ${t.folge ? kurzDatum(t.datum) + ' ' : ''}${vm ? 'Vormittag' : 'Nachmittag'}</h3>
       <div class="wahl">${knopf('data-art', 'keine', 'Keine Zeit', z.art === 'keine')}${knopf('data-art', 'angeleitet', 'Angeleitetes Training', z.art === 'angeleitet')}${knopf('data-art', 'hs', 'High-Spirit-Training', z.art === 'hs')}</div>`;
     if (z.art === 'angeleitet') {
       html += `<div class="field"><span>Wo?</span><div class="feel">${ANGELEITET.map(x => knopf('data-was', x, x, z.was === x)).join('')}</div></div>`;
@@ -583,6 +588,12 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   function setzeZeit(w, s, wert) {
     if (s.zeit === wert) return;
     s.zeit = wert; S.geaendert[w.name + '|' + s.zelle] = true;
+    // Montag steht doppelt (Ende dieser Woche / Anfang der nächsten): geladene Kopie gleich mitziehen, das Sheet macht das Skript
+    ['vm', 'nm'].forEach(h => Object.values(S.d.daten || {}).forEach(x => {
+      if (!x || x === w || !x.tage) return;
+      if (w.folgeMontag && s === w.folgeMontag[h] && x.tage[0].datum === w.folgeMontag.datum) x.tage[0][h].zeit = wert;
+      if (s === w.tage[0][h] && x.folgeMontag && x.folgeMontag.datum === w.tage[0].datum) x.folgeMontag[h].zeit = wert;
+    }));
     merken(w.name, s.zelle, wert); render();
   }
 
@@ -767,7 +778,10 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   // ---------- Ablauf ----------
   function laden(name) {
     if (S.d.daten[name]) return;
-    api('woche', S.k, name).then(w => { S.d.daten[name] = w; render(); }).catch(e => { toast(e.message || 'Woche konnte nicht geladen werden.'); });
+    api('woche', S.k, name).then(w => {
+      // Montag schon in der Vorwoche eingetragen, aber noch nicht gespeichert angekommen? Dann den nehmen.
+      if (w && w.tage) Object.values(S.d.daten).forEach(x => { if (x && x.folgeMontag && x.folgeMontag.datum === w.tage[0].datum) ['vm', 'nm'].forEach(h => { if (x.folgeMontag[h].zeit && !w.tage[0][h].zeit) w.tage[0][h].zeit = x.folgeMontag[h].zeit; }); });
+      S.d.daten[name] = w; render(); }).catch(e => { toast(e.message || 'Woche konnte nicht geladen werden.'); });
   }
   function render() {
     const v = $('#view');
@@ -815,8 +829,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (fix) { const z = fix.dataset.fix; delete S.pruef[z]; render(); const inp = document.getElementById('v_' + z); if (inp) { inp.focus(); inp.select(); } return; }
     if (e.target.id === 'stdEin') {
       const w = S.d.daten[S.wocheZ];
-      w.tage.forEach((t, i) => ['vm', 'nm'].forEach((h, j) => {
-        const wert = S.d.standard[i * 2 + j] || '';
+      zTage(w).forEach((t, i) => ['vm', 'nm'].forEach((h, j) => {
+        const wert = S.d.standard[(i % 7) * 2 + j] || '';
         if (t[h].zeit !== wert) { t[h].zeit = wert; S.geaendert[w.name + '|' + t[h].zelle] = true; merken(w.name, t[h].zelle, wert); }
       }));
       render(); toast('Standardwoche eingesetzt. Einzelne Halbtage kannst du antippen und ändern.'); return;
