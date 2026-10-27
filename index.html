@@ -251,6 +251,14 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
 .sheet .fromto { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .sheet input.mine-in { font-size: 16px; }
 .sheet .wrap { display: grid; gap: 12px; }
+.raeder { position: relative; display: flex; justify-content: center; align-items: center; gap: 6px; height: 220px; }
+.raeder .fenster { position: absolute; left: 0; right: 0; top: 88px; height: 44px; border-radius: 10px; background: var(--mine); border: 1px solid var(--mine-line); pointer-events: none; }
+.rad { position: relative; width: 84px; height: 220px; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-padding: 88px 0; padding: 88px 0; box-sizing: border-box; scrollbar-width: none; -webkit-overflow-scrolling: touch; -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); }
+.rad::-webkit-scrollbar { display: none; }
+.ri { height: 44px; line-height: 44px; text-align: center; scroll-snap-align: start; font: 700 24px/44px var(--f-num); font-variant-numeric: tabular-nums; color: var(--muted); cursor: pointer; }
+.ri.an { color: var(--ink, inherit); }
+.dp { position: relative; font: 800 26px/1 var(--f-num); }
+.inp input[readonly] { cursor: pointer; }
 .sheet h3 { margin: 0; font: 800 19px/1.2 var(--f-display); }
 .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .opts button { border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 14px 10px; font-weight: 600; }
@@ -700,7 +708,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
         const last = t.zuletzt ? `Zuletzt: ${esc(t.zuletzt)} ${esc(einheitKurz(t.einheit))} (Woche ${esc(t.zuletztWoche)})` : 'Noch kein früherer Wert';
         const p = S.pruef[t.zelle];
         html += `<div class="val"><label for="${id}">${esc(testName(t.name))}${t.info ? `<small>${esc(t.info)}</small>` : ''}</label>
-          <div class="inp"><input id="${id}" data-test="${esc(t.zelle)}" inputmode="${pace ? 'text' : 'decimal'}" placeholder="${pace ? '4:30' : '–'}" value="${esc(p ? p.neu : t.wert)}" autocomplete="off"></div>
+          <div class="inp"><input id="${id}" data-test="${esc(t.zelle)}" ${pace ? `data-pace="${esc(t.zelle)}" readonly` : 'inputmode="decimal"'} placeholder="${pace ? 'm:ss' : '–'}" value="${esc(p ? p.neu : t.wert)}" autocomplete="off"></div>
           <div class="unit-l">${esc(t.einheit)}</div>
           <div class="last"><span>${last}</span><button type="button" class="vbtn" data-chart="${esc(k)}" aria-expanded="${offen}">${offen ? 'Verlauf zu' : 'Verlauf'}</button></div>
           ${t.bedingung !== undefined ? `<button type="button" class="std${t.bedingung ? ' on' : t.wert ? ' warn' : ''}" data-std="${esc(t.zelle)}" aria-pressed="${t.bedingung}"><span class="box">${t.bedingung ? '✓' : ''}</span><span>Standardbedingungen erfüllt<small>Kein starker Wind, trockene Strecke, gleicher Untergrund</small></span></button>` : ''}
@@ -803,6 +811,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const ok = e.target.closest('[data-ok]');
     if (ok) { const z = ok.dataset.ok, f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === z), p = S.pruef[z]; delete S.pruef[z];
       testSpeichern(f, t, p.neu, 'vorher ' + p.ref + ', Athlet hat bestätigt'); return; }
+    const pc = e.target.closest('[data-pace]'); if (pc) { paceEditor(pc); return; }
     const sb = e.target.closest('[data-std]');
     if (sb) { const f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === sb.dataset.std), alt = t.bedingung;
       t.bedingung = !alt; render(); status('Speichert …');
@@ -860,6 +869,30 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       delete S.pruef[z]; testSpeichern(f, t, wert, '');
     }
   });
+  // Pace (min:sek) per Drehrad statt Tastatur: links Minuten, rechts Sekunden
+  function paceEditor(inp) {
+    const f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === inp.dataset.pace);
+    const m0 = String(inp.value || t.zuletzt || '').match(/^(\d{1,2}):(\d{2})/) || [0, /schwimm/i.test(t.name) ? '2' : '5', '00'];
+    const MIN = Array.from({ length: 15 }, (_, i) => i + 1), SEK = Array.from({ length: 60 }, (_, i) => i);
+    const rad = (id, liste, wert, fmt) => `<div class="rad" id="${id}" tabindex="0">${liste.map(x => `<div class="ri${x === wert ? ' an' : ''}">${fmt(x)}</div>`).join('')}</div>`;
+    $('#overlay').innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh"><div class="wrap">
+      <h3 id="sh">${esc(testName(t.name))}</h3><div class="muted">Mit dem Daumen drehen: links Minuten, rechts Sekunden (${esc(t.einheit)}).</div>
+      <div class="raeder"><div class="fenster"></div>${rad('rm', MIN, Number(m0[1]), x => x)}<div class="dp">:</div>${rad('rs', SEK, Number(m0[2]), x => String(x).padStart(2, '0'))}</div>
+      <button class="btn" type="button" id="ok">Übernehmen</button>
+      <div class="row-btns"><button class="btn sec wide" type="button" data-leer>Feld leeren</button><button class="btn sec wide" type="button" id="zu">Abbrechen</button></div>
+    </div></div></div>`;
+    const H = 44, el = { m: $('#rm'), s: $('#rs') };
+    el.m.scrollTop = (Math.min(15, Math.max(1, Number(m0[1]))) - 1) * H; el.s.scrollTop = Math.min(59, Number(m0[2])) * H;
+    const index = r => Math.round(r.scrollTop / H);
+    Object.values(el).forEach(r => r.addEventListener('scroll', () => { const i = index(r); [...r.children].forEach((c, j) => c.classList.toggle('an', j === i)); }, { passive: true }));
+    const fertig = wert => { $('#overlay').innerHTML = ''; if (wert === null) return; inp.value = wert; inp.dispatchEvent(new Event('change', { bubbles: true })); };
+    $('#scrim').addEventListener('click', e => {
+      if (e.target.id === 'scrim' || e.target.id === 'zu') return fertig(null);
+      if (e.target.closest('[data-leer]')) return fertig('');
+      const ri = e.target.closest('.ri'); if (ri) { const r = ri.parentNode; r.scrollTo({ top: [...r.children].indexOf(ri) * H, behavior: 'smooth' }); return; }
+      if (e.target.id === 'ok') return fertig(MIN[Math.min(MIN.length - 1, index(el.m))] + ':' + String(SEK[Math.min(59, index(el.s))]).padStart(2, '0'));
+    });
+  }
   function testSpeichern(f, t, wert, hinweis) {
     const alt = t.wert; t.wert = wert;
     if (wert && t.bedingung === false) setTimeout(() => toast('Gespeichert. Bitte noch bestätigen: Standardbedingungen erfüllt?'), 1600);
