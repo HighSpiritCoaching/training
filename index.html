@@ -198,6 +198,12 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
 .switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
 .switch input:checked { background: var(--bad); }
 .switch input:checked::after { transform: translateX(22px); }
+.done { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.done button { border: 0; border-left: 1px solid var(--line); background: none; padding: 8px 4px; font: 600 15px/1 var(--f-num); letter-spacing: .02em; white-space: nowrap; }
+.done button:first-child { border-left: 0; }
+.done button.voll[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: #fff; }
+.done button.reduziert[aria-pressed="true"] { background: var(--mine); border-color: var(--mine-line); }
+.done button.ausgefallen[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: #fff; }
 .sick { background: var(--bad-bg); color: var(--bad); border-radius: 12px; padding: 10px 12px; font-weight: 600; }
 
 /* Reiter unten */
@@ -256,6 +262,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   const ANGELEITET = ['Schulsport', 'BMX-Bahn', 'Kraftkammer'];
   const INTENSITAET = ['intensiv', 'mittel', 'locker'];
+  // Training erledigt? Nur die Auswahl, die Auswertung in % sieht nur Hannes.
+  const ERLEDIGT = [['voll', '✓ Voll'], ['reduziert', '½ Reduziert'], ['ausgefallen', '✕ Ausgefallen']];
   const WUNSCH = ['Gym', 'Plyos', 'Sprints', 'Grundlage/Ausdauer', 'BMX-Track', 'Regeneration', 'Dehnen/Mobility'];
   // Adresse des Google-Skripts (Bereitstellen → Web-App-URL). Bleibt gleich, solange nur "Neue Version" bereitgestellt wird.
   const APP_URL = 'https://script.google.com/macros/s/AKfycbwybzfE0TMqvge98_Q3PMF_ZnP4q3zyIKHXGNYH52ovo4w_5kGLe1qTj-b9zXq1XLtp/exec';
@@ -271,6 +279,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       let anfrage;
       if (fn === 'speichern') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], woche: args[1], aenderungen: args[2] }) });
       else if (fn === 'standardSpeichern') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], werte: args[1] }) });
+      else if (fn === 'erledigt') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], datum: args[1], halbtag: args[2], titel: args[3], status: args[4] }) });
       else anfrage = fetch(APP_URL + '?a=' + fn + '&k=' + encodeURIComponent(args[0]) + (fn === 'woche' ? '&name=' + encodeURIComponent(args[1]) : ''));
       return anfrage
         .catch(() => { throw new Error('Keine Verbindung. Bist du online?'); })
@@ -325,7 +334,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     return r;
   }
   const hatPlan = h => h && h.zeilen && h.zeilen.length > 0;
-  function einheit(h, halb, mitZeit) {
+  function einheit(h, halb, mitZeit, t) {
     const z = zerlege(h);
     const ex = z.ex.map(e => e.note
       ? `<li class="note">${esc(e.note)}</li>`
@@ -333,12 +342,18 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     return `<article class="unit ${z.art}">
       <div class="unit-h"><span class="half">${halb}</span><h4>${esc(z.titel)}</h4>${z.saetze ? `<span class="sets">${esc(z.saetze)} Sätze</span>` : ''}</div>
       ${mitZeit && h.zeit ? `<div class="mytime">Deine Angabe: ${esc(wahlKurz(h.zeit))}</div>` : ''}
-      <ol class="ex">${ex}</ol></article>`;
+      <ol class="ex">${ex}</ol>${t ? erledigtZeile(t, halb, z.titel) : ''}</article>`;
+  }
+  function erledigtZeile(t, halb, titel) {
+    if (!S.d.rechte.erledigt || !t.datum || t.datum > S.d.heute || t.datum < plusTage(S.d.heute, -14)) return '';
+    const key = t.datum + '|' + halb.toLowerCase(), wert = (S.d.erledigt || {})[key] || '';
+    return `<div class="done" role="group" aria-label="Einheit erledigt?">${ERLEDIGT.map(([id, txt]) =>
+      `<button type="button" class="${id}" data-done="${esc(key + '|' + id)}" data-titel="${esc(titel)}" aria-pressed="${wert === id}">${txt}</button>`).join('')}</div>`;
   }
   function tagPlan(t, mitZeit) {
     let html = '';
-    if (hatPlan(t.vm)) html += einheit(t.vm, 'VM', mitZeit);
-    if (hatPlan(t.nm)) html += einheit(t.nm, 'NM', mitZeit);
+    if (hatPlan(t.vm)) html += einheit(t.vm, 'VM', mitZeit, t);
+    if (hatPlan(t.nm)) html += einheit(t.nm, 'NM', mitZeit, t);
     if (t.notiz) html += `<div class="hint"><b>Hinweis von Hannes</b>${esc(t.notiz)}</div>`;
     return html;
   }
@@ -613,6 +628,17 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const ok = e.target.closest('[data-ok]');
     if (ok) { const z = ok.dataset.ok, f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === z), p = S.pruef[z]; delete S.pruef[z];
       testSpeichern(f, t, p.neu, 'vorher ' + p.ref + ', Athlet hat bestätigt'); return; }
+    const dn = e.target.closest('[data-done]');
+    if (dn) {
+      const [datum, halb, id] = dn.dataset.done.split('|'), key = datum + '|' + halb;
+      S.d.erledigt = S.d.erledigt || {};
+      const alt = S.d.erledigt[key] || '', neu = alt === id ? '' : id;
+      S.d.erledigt[key] = neu; render(); status('Speichert …');
+      api('erledigt', S.k, datum, halb, dn.dataset.titel, neu)
+        .then(() => { status('Gespeichert', 'ok'); toast(echt ? 'Gespeichert' : 'Vorschau: würde jetzt gespeichert'); })
+        .catch(err => { S.d.erledigt[key] = alt; render(); status('Nicht gespeichert', 'err'); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
+      return;
+    }
     const fix = e.target.closest('[data-fix]');
     if (fix) { const z = fix.dataset.fix; delete S.pruef[z]; render(); const inp = document.getElementById('v_' + z); if (inp) { inp.focus(); inp.select(); } return; }
     if (e.target.id === 'stdEin') {
