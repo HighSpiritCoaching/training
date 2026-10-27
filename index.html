@@ -313,6 +313,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       else if (fn === 'standardSpeichern') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], werte: args[1] }) });
       else if (fn === 'termin') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], termin: args[1] }) });
       else if (fn === 'terminLoeschen') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], id: args[1] }) });
+      else if (fn === 'voiceGesendet') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0] }) });
       else if (fn === 'videoGesendet') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], id: args[1] }) });
       else if (fn === 'erledigt') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], datum: args[1], halbtag: args[2], titel: args[3], status: args[4] }) });
       else anfrage = fetch(APP_URL + '?a=' + fn + '&k=' + encodeURIComponent(args[0]) + (fn === 'woche' ? '&name=' + encodeURIComponent(args[1]) : ''));
@@ -394,12 +395,17 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   }
 
   // ---------- Heute ----------
-  function videoKarte() {
+  // Aufgaben ganz oben auf Heute: Voice-Nachricht (Fr–So) und Videoanalyse. Abhaken = Effekt und weg.
+  function aufgabeKarte(art, ueber, titel, klein, knopf) {
+    return `<div class="video" id="karte-${art}"><div class="vtxt"><span>${ueber}</span><b>${esc(titel)}</b>${klein ? `<small>${esc(klein)}</small>` : ''}</div>
+      <button class="vok" type="button" data-abhaken="${art}">${knopf}</button></div>`;
+  }
+  function aufgabenKarten() {
+    let html = '';
+    if (S.d.rechte.voice && S.d.voice) html += aufgabeKarte('voice', 'Wochenrückblick', 'Kurze Voice-Nachricht an Hannes', 'Wie war deine Woche? Per WhatsApp, bis Sonntag.', '✓ Erledigt');
     const v = S.d.video;
-    if (!S.d.rechte.video || !v) return '';
-    const seit = v.seit ? kurzDatum(v.seit.slice(0, 10)) : '';
-    return `<div class="video" id="video"><div class="vtxt"><span>Ausstehende Videoanalyse</span><b>${esc(v.aufgabe || 'Schick Hannes dein nächstes Video')}</b>${seit ? `<small>Auftrag vom ${seit}</small>` : ''}</div>
-      <button class="vok" type="button" id="videoOk">✓ Gesendet</button></div>`;
+    if (S.d.rechte.video && v) html += aufgabeKarte('video', 'Ausstehende Videoanalyse', v.aufgabe || 'Schick Hannes dein nächstes Video', v.seit ? 'Auftrag vom ' + kurzDatum(v.seit.slice(0, 10)) : '', '✓ Gesendet');
+    return html;
   }
   function konfetti(el) {
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -416,20 +422,20 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
         { duration: 800 + Math.random() * 400, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => k.remove();
     }
   }
-  function videoGesendet() {
-    const karte = $('#video'), v = S.d.video;
+  function abhaken(art) {
+    const karte = $('#karte-' + art), knopf = karte && karte.querySelector('.vok'), v = S.d[art];
     if (!karte || !v || karte.classList.contains('ok')) return;
-    karte.classList.add('ok'); $('#videoOk').textContent = '✓ Danke!';
-    konfetti($('#videoOk'));
+    karte.classList.add('ok'); knopf.textContent = '✓ Danke!';
+    konfetti(knopf);
     setTimeout(() => karte.classList.add('weg'), 700);
-    setTimeout(() => { if (S.d.video === v) { S.d.video = null; if (S.tab === 'heute') render(); } }, 1200);
-    api('videoGesendet', S.k, v.id)
-      .then(r => { if (r && r.naechstes) { S.d.video = r.naechstes; if (S.tab === 'heute') render(); } })
-      .catch(err => { S.d.video = v; if (S.tab === 'heute') render(); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
+    setTimeout(() => { if (S.d[art] === v) { S.d[art] = null; if (S.tab === 'heute') render(); } }, 1200);
+    api(art === 'video' ? 'videoGesendet' : 'voiceGesendet', S.k, v.id)
+      .then(r => { if (art === 'video' && r && r.naechstes) { S.d.video = r.naechstes; if (S.tab === 'heute') render(); } })
+      .catch(err => { S.d[art] = v; if (S.tab === 'heute') render(); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
   }
   function viewHeute() {
     const heute = S.d.heute, f = finde(heute), m = finde(plusTage(heute, 1));
-    let html = videoKarte();
+    let html = aufgabenKarten();
     if (!f) return html + '<div class="card"><div class="empty">Für diese Woche gibt es noch keinen Plan.</div></div>';
     const t = f.t;
     if (t.krank) html += '<div class="sick">Du hast dich für heute krank gemeldet. Gute Besserung!</div>';
@@ -768,7 +774,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const ok = e.target.closest('[data-ok]');
     if (ok) { const z = ok.dataset.ok, f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === z), p = S.pruef[z]; delete S.pruef[z];
       testSpeichern(f, t, p.neu, 'vorher ' + p.ref + ', Athlet hat bestätigt'); return; }
-    if (e.target.id === 'videoOk') { videoGesendet(); return; }
+    const ab = e.target.closest('[data-abhaken]'); if (ab) { abhaken(ab.dataset.abhaken); return; }
     if (e.target.id === 'neuTermin') { terminEditor({ art: '', name: '', von: '', bis: '', wichtig: '', intensitaet: '', notiz: '' }); return; }
     const tm = e.target.closest('[data-termin]');
     if (tm) { const t = (S.d.termine || []).find(x => x.id === tm.dataset.termin); if (t) terminEditor(Object.assign({}, t)); return; }
