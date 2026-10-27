@@ -655,7 +655,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (app || weg || (!ios && !android)) return;
     const schritte = ios
       ? ['Unten auf <b>Teilen</b> tippen (Quadrat mit Pfeil nach oben).', 'Runterscrollen, <b>„Zum Home-Bildschirm“</b> tippen.', 'Oben rechts <b>Hinzufügen</b> tippen. Fertig!', 'Kein Teilen-Symbol zu sehen? Dann den Link zuerst in <b>Safari</b> öffnen.']
-      : ['Oben rechts auf die <b>drei Punkte ⋮</b> tippen.', '<b>„Zum Startbildschirm hinzufügen“</b> oder <b>„App installieren“</b> tippen.', '<b>Hinzufügen</b> bzw. <b>Installieren</b> tippen. Fertig!', 'Keine drei Punkte zu sehen? Dann den Link zuerst in <b>Chrome</b> öffnen.'];
+      : ['Oben rechts auf die <b>drei Punkte ⋮</b> tippen.', '<b>„Installieren“</b> tippen.', 'Noch einmal <b>Installieren</b> bestätigen. Fertig!', 'Keine drei Punkte zu sehen? Dann den Link zuerst in <b>Chrome</b> öffnen.'];
     $('#installSchritte').innerHTML = schritte.map(s => '<li>' + s + '</li>').join('');
     $('#install').hidden = false;
     $('#installZu').onclick = () => { $('#install').hidden = true; try { localStorage.setItem('hs_install_zu', '1'); } catch (e) {} };
