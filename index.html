@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>High Spirit</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="High Spirit">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#1b1f2a">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  html, body { margin: 0; height: 100%; background: #1b1f2a; }
+  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #1b1f2a; }
+  p { color: #f4f6fa; font: 16px/1.4 system-ui, sans-serif; padding: 40px 24px; text-align: center; }
+</style>
+</head>
+<body>
+<script>
+  // Adresse der Google-Web-App (Bereitstellen → Web-App-URL). Nach einer NEUEN Bereitstellung hier ersetzen.
+  var APP = 'https://script.google.com/macros/s/AKfycbwybzfE0TMqvge98_Q3PMF_ZnP4q3zyIKHXGNYH52ovo4w_5kGLe1qTj-b9zXq1XLtp/exec';
+  var k = new URLSearchParams(location.search).get('k') || '';
+  // Schlüssel merken, damit das Symbol auf dem Startbildschirm auch ohne ?k= funktioniert
+  try { if (k) localStorage.setItem('hs_k', k); else k = localStorage.getItem('hs_k') || ''; } catch (e) {}
+  if (k) {
+    var f = document.createElement('iframe');
+    f.src = APP + '?k=' + encodeURIComponent(k);
+    f.title = 'High Spirit Training';
+    document.body.appendChild(f);
+  } else {
+    document.body.innerHTML = '<p>Bitte öffne deinen persönlichen Link von Hannes.</p>';
+  }
+</script>
+</body>
+</html>
