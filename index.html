@@ -339,6 +339,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const args = [].slice.call(arguments, 1);
     if (echt) {
       let anfrage;
+      if (!/^(start|woche|verlauf)$/.test(fn)) S.bearbeitet = true;
       if (fn === 'speichern') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], woche: args[1], aenderungen: args[2] }) });
       else if (fn === 'standardSpeichern') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], werte: args[1] }) });
       else if (fn === 'termin') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], termin: args[1] }) });
@@ -1153,7 +1154,17 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     // Schlüssel aus dem Link merken, damit das Symbol auf dem Startbildschirm auch ohne ?k= funktioniert
     S.k = new URLSearchParams(location.search).get('k') || '';
     if (!S.k) { try { S.k = localStorage.getItem('hs_k') || ''; } catch (e) {} }
-    if (S.k) api('start', S.k).then(d => { try { localStorage.setItem('hs_k', S.k); } catch (e) {} los(d); }).catch(fehler);
+    // Schneller Start: sofort den zuletzt geladenen Stand von heute zeigen, im Hintergrund frisch laden
+    let alt = null;
+    try { alt = JSON.parse(localStorage.getItem('hs_start_' + S.k) || 'null'); } catch (e) {}
+    if (alt && alt.heute === toIso(new Date())) { los(alt); status('Aktualisiere …'); } else alt = null;
+    if (S.k) api('start', S.k).then(d => {
+      try { localStorage.setItem('hs_k', S.k); localStorage.setItem('hs_start_' + S.k, JSON.stringify(d)); } catch (e) {}
+      if (!alt) return los(d);
+      // nur austauschen, wenn der Athlet in der Zwischenzeit nichts eingetragen hat und kein Fenster offen ist
+      if (!S.bearbeitet && !$('#overlay').innerHTML) { const tab = S.tab, ww = S.wocheW, wz = S.wocheZ; los(d); S.tab = tab; if (d.daten[ww]) S.wocheW = ww; if (d.daten[wz]) S.wocheZ = wz; render(); }
+      status('Aktuell', 'ok');
+    }).catch(e => { if (alt) status('Offline: Stand von vorhin', 'err'); else fehler(e); });
     else fehler('Bitte öffne deinen persönlichen Link von Hannes (in Safari bzw. Chrome) und leg ihn von dort neu auf den Startbildschirm.');
   }
 })();
