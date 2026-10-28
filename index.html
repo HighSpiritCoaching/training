@@ -162,6 +162,8 @@ a.link { color: var(--accent); font-weight: 600; }
 .ex li.feld .val { background: var(--surface); border-radius: 10px; padding: 8px 10px; border-top: 0; }
 .ex.zeit li.ss { border-left: 3px solid var(--stripe); padding-left: 6px; }
 .ex.zeit li.ende { margin-bottom: 8px; }
+.ulink { color: inherit; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.ulink .play { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 10px; vertical-align: 2px; text-decoration: none; }
 .zoek { justify-self: start; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: 600 14px/1 var(--f-num); }
 .zoek[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .inp .ro { width: 100%; text-align: right; font: 700 19px/1 var(--f-num); padding: 10px 2px; font-variant-numeric: tabular-nums; }
@@ -400,12 +402,18 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     r.art = art(r.titel, h.farbe);
     return r;
   }
+  // Übungsvideo aus dem Reiter "Übungsvideos" (längstes passendes Stichwort gewinnt)
+  function uebName(u) {
+    const x = String(u || '').toLowerCase().replace(/\s+/g, ' ');
+    const v = (S.d.uebungsvideos || []).filter(v => x.includes(v.wort.toLowerCase().replace(/\s+/g, ' '))).sort((a, b) => b.wort.length - a.wort.length)[0];
+    return v ? `<a class="ulink" href="${esc(v.link)}" target="_blank" rel="noopener">${esc(u)}<span class="play" aria-label="Video ansehen">▶</span></a>` : esc(u);
+  }
   const hatPlan = h => h && h.zeilen && h.zeilen.length > 0;
   function einheit(h, halb, mitZeit, t) {
     const z = zerlege(h), gym = t && istGym(z), zk = t ? t.datum + '|' + halb : '', oek = gym && S.zoek[zk], mf = messFelderHeute(h, t);
     const ex = oek ? '' : z.ex.map(e => (e.note
       ? `<li class="note">${esc(e.note)}</li>`
-      : `<li><span class="s">${e.s ? esc(e.s) + '×' : ''}</span><span class="n">${esc(e.u)}</span>${(e.w || e.p || e.pa) ? `<span class="m">${e.w ? '<span>' + esc(e.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span>` : ''}</li>`) + felderZeile(mf, e.idx)).join('');
+      : `<li><span class="s">${e.s ? esc(e.s) + '×' : ''}</span><span class="n">${uebName(e.u)}</span>${(e.w || e.p || e.pa) ? `<span class="m">${e.w ? '<span>' + esc(e.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span>` : ''}</li>`) + felderZeile(mf, e.idx)).join('');
     return `<article class="unit ${z.art}">
       <div class="unit-h"><span class="half">${halb}</span><h4>${esc(z.titel)}</h4>${z.saetze ? `<span class="sets">${esc(z.saetze)} Sätze</span>` : ''}</div>
       ${mitZeit && h.zeit ? `<div class="mytime">Deine Angabe: ${esc(wahlKurz(h.zeit))}</div>` : ''}
@@ -551,7 +559,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       if (o.note) return `<li class="note">${esc(o.note)}</li>` + felderZeile(mf, o.idx);
       const e = o.x.e, kt = f && fuenfer(o.s.w) ? kraftTest(o.x.u, f.w) : null;
       const feld = kt && !S.gezeigt[kt.zelle] ? `<li class="feld">${heuteFeld(kt, o.x.u.trim() + ' · 5 WH')}</li>` : '';
-      return `<li class="satz${o.ss ? ' ss' : ''}${o.ende ? ' ende' : ''}"><span class="s">${o.s.nr}.</span><span class="n">${esc(o.x.u)}</span><span class="m">${o.s.w ? '<span>' + esc(o.s.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${o.ss ? '<span>Supersatz</span>' : e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span></li>${feld}${o.s.nr === o.x.saetze.length ? felderZeile(mf, e.idx) : ''}`;
+      return `<li class="satz${o.ss ? ' ss' : ''}${o.ende ? ' ende' : ''}"><span class="s">${o.s.nr}.</span><span class="n">${uebName(o.x.u)}</span><span class="m">${o.s.w ? '<span>' + esc(o.s.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${o.ss ? '<span>Supersatz</span>' : e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span></li>${feld}${o.s.nr === o.x.saetze.length ? felderZeile(mf, e.idx) : ''}`;
     }).join('') + '</ol>';
   }
 
