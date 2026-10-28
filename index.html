@@ -421,6 +421,12 @@ h2.abschnitt::before { background: var(--c); height: 18px; }
 .zu .zt { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .zu .zt b { font: 800 16px/1.2 var(--f-display); }
 .zu .zt span { color: var(--muted); font-size: 14px; }
+
+/* Sprungleiste umbrechen statt wischen (wie im Dashboard): 3 pro Zeile */
+.sprung { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; overflow: visible; padding: 8px 16px; }
+.sprung a { justify-content: center; min-width: 0; padding: 7px 5px; gap: 5px; font-size: 13px; }
+.sprung a span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sprung a i { flex: none; }
 </style>
 
 </head>
@@ -814,19 +820,19 @@ h2.abschnitt::before { background: var(--c); height: 18px; }
     S.gezeigt = {};
     const auf = aufgabenKarten(), nav = [];
     let html = '';
-    const abschnitt = (id, titel, farbe, zahl) => { nav.push({ id: id, titel: titel, farbe: farbe, zahl: zahl }); return `<h2 class="abschnitt" id="${id}" style="--c:${farbe}">${esc(titel)}</h2>`; };
-    if (auf) html += abschnitt('a-aufgaben', 'Deine Aufgaben', '#a08bf5', (auf.match(/class="video"/g) || []).length) + `<div class="aufgaben">${auf}</div>`;
+    const abschnitt = (id, titel, farbe, zahl, kurz) => { nav.push({ id: id, titel: titel, farbe: farbe, zahl: zahl, kurz: kurz }); return `<h2 class="abschnitt" id="${id}" style="--c:${farbe}">${esc(titel)}</h2>`; };
+    if (auf) html += abschnitt('a-aufgaben', 'Deine Aufgaben', '#a08bf5', (auf.match(/class="video"/g) || []).length, 'Aufgaben') + `<div class="aufgaben">${auf}</div>`;
     if (!f) return sprungLeiste(nav) + html + '<div class="card"><div class="empty">Für diese Woche gibt es noch keinen Plan.</div></div>';
     const t = f.t;
     if (t.krank) html += '<div class="sick">Du hast dich für heute krank gemeldet. Gute Besserung!</div>';
     const mf = morgenFelder(f);
-    if (mf.length) html += abschnitt('a-frueh', 'Heute früh', '#e8899a') + `<div class="card">${mf.map(x => heuteFeld(x[0], x[1])).join('')}</div>`;
+    if (mf.length) html += abschnitt('a-frueh', 'Heute früh', '#e8899a', 0, 'Früh') + `<div class="card">${mf.map(x => heuteFeld(x[0], x[1])).join('')}</div>`;
     // jede Einheit von heute bekommt einen eigenen Abschnitt in ihrer Farbe
     const farbeVon = h => ({ gym: '#5fd8cd', plyo: '#b19eff', sprint: '#f0cd7c', track: '#82adff' })[zerlege(h).art] || '#a0a7b4';
     let plan = '';
     [['vm', 'VM'], ['nm', 'NM']].forEach(([k, halb]) => {
       if (!hatPlan(t[k])) return;
-      plan += abschnitt('a-' + k, halb + ' · ' + zerlege(t[k]).titel, farbeVon(t[k])) + einheit(t[k], halb, true, t);
+      plan += abschnitt('a-' + k, halb + ' · ' + zerlege(t[k]).titel, farbeVon(t[k]), 0, zerlege(t[k]).titel.length > 8 ? zerlege(t[k]).titel : halb + ' ' + zerlege(t[k]).titel) + einheit(t[k], halb, true, t);
     });
     if (t.notiz) plan += `<div class="hint"><b>Hinweis von Hannes</b>${esc(t.notiz)}</div>`;
     html += plan || abschnitt('a-heute', 'Heute', '#7aa7ff') + '<div class="card"><div class="empty">Heute steht kein Training im Plan.</div></div>';
@@ -848,7 +854,7 @@ h2.abschnitt::before { background: var(--c); height: 18px; }
   }
   function sprungLeiste(nav) {
     if (nav.length < 2) return '';
-    return `<nav class="sprung" aria-label="Springe zu">${nav.map(n => `<a href="#${n.id}" data-sprung="${n.id}" style="--c:${n.farbe}"><i></i>${esc(n.titel)}${n.zahl ? `<b>${n.zahl}</b>` : ''}</a>`).join('')}</nav>`;
+    return `<nav class="sprung" aria-label="Springe zu">${nav.map(n => `<a href="#${n.id}" data-sprung="${n.id}" style="--c:${n.farbe}">${n.zahl ? '' : '<i></i>'}<span>${esc(n.kurz || n.titel)}</span>${n.zahl ? `<b>${n.zahl}</b>` : ''}</a>`).join('')}</nav>`;
   }
   // markiert in der Sprungleiste den Abschnitt, in dem man gerade ist
   function sprungSpy() {
