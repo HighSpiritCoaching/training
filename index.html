@@ -102,6 +102,11 @@ h2 { margin: 6px 0 0; font: 800 15px/1.2 var(--f-display); text-transform: upper
 .ex .s { font: 700 18px/1.2 var(--f-num); font-variant-numeric: tabular-nums; }
 .ex .n { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .ex .m { grid-column: 2; font: 500 15px/1.2 var(--f-num); color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+.ex li[data-ab] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ex li.ab > * { opacity: .35; transition: opacity .2s; }
+.ex li.ab .n { text-decoration: line-through; }
+.ex li.ab .s { opacity: 1; font-size: 0; }
+.ex li.ab .s::before { content: '✓'; font-size: 18px; color: var(--accent); }
 .ex li.note { grid-template-columns: 1fr; font-style: italic; color: var(--muted); }
 .hint { white-space: pre-line; background: var(--surface); border: 1px dashed var(--line); border-radius: 10px; padding: 9px 11px; font-size: 15px; }
 .hint b { font-family: var(--f-num); letter-spacing: .05em; text-transform: uppercase; font-size: 13px; color: var(--muted); display: block; }
@@ -412,18 +417,31 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const v = (S.d.uebungsvideos || []).filter(v => x.includes(v.wort.toLowerCase().replace(/\s+/g, ' '))).sort((a, b) => b.wort.length - a.wort.length)[0];
     return v ? `<span>${esc(u)}</span><a class="play" href="${esc(v.link || 'https://www.youtube.com/results?search_query=' + encodeURIComponent(v.wort))}" target="_blank" rel="noopener" aria-label="Video ansehen"><svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0l10 6-10 6z"/></svg></a>` : esc(u);
   }
+  // Übung abhaken (nur auf diesem Handy, rutscht optisch in den Hintergrund)
+  function abListe() {
+    if (!S.ab) { try { S.ab = JSON.parse(localStorage.getItem('hs_ab_' + S.k) || '{}'); } catch (e) { S.ab = {}; } }
+    return S.ab;
+  }
+  function abAttr(key) { return key ? ` data-ab="${esc(key)}"${abListe()[key] ? ' class="ab"' : ''}` : ''; }
+  function abUmschalten(li) {
+    const a = abListe(), k = li.dataset.ab, grenze = plusTage(S.d.heute, -14);
+    if (a[k]) delete a[k]; else a[k] = 1;
+    Object.keys(a).forEach(x => { if (x.slice(0, 10) < grenze) delete a[x]; });
+    li.classList.toggle('ab', !!a[k]);
+    try { localStorage.setItem('hs_ab_' + S.k, JSON.stringify(a)); } catch (e) {}
+  }
   const vidKl = u => uebName(u).startsWith('<span>') ? ' mitvid' : '';
   const hatPlan = h => h && h.zeilen && h.zeilen.length > 0;
   function einheit(h, halb, mitZeit, t) {
     const z = zerlege(h), gym = t && istGym(z), zk = t ? t.datum + '|' + halb : '', oek = gym && S.zoek[zk], mf = messFelderHeute(h, t);
     const ex = oek ? '' : z.ex.map(e => (e.note
       ? `<li class="note">${esc(e.note)}</li>`
-      : `<li><span class="s">${e.s ? esc(e.s) + '×' : ''}</span><span class="n${vidKl(e.u)}">${uebName(e.u)}</span>${(e.w || e.p || e.pa) ? `<span class="m">${e.w ? '<span>' + esc(e.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span>` : ''}</li>`) + felderZeile(mf, e.idx)).join('');
+      : `<li${abAttr(zk && zk + '|' + e.idx)}><span class="s">${e.s ? esc(e.s) + '×' : ''}</span><span class="n${vidKl(e.u)}">${uebName(e.u)}</span>${(e.w || e.p || e.pa) ? `<span class="m">${e.w ? '<span>' + esc(e.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span>` : ''}</li>`) + felderZeile(mf, e.idx)).join('');
     return `<article class="unit ${z.art}">
       <div class="unit-h"><span class="half">${halb}</span><h4>${esc(z.titel)}</h4>${z.saetze ? `<span class="sets">${esc(z.saetze)} Sätze</span>` : ''}<span class="dauer" title="geschätzt mit Satzpausen">⏱ ${dauerText(dauerMin(z, oek))}</span></div>
       ${mitZeit && h.zeit ? `<div class="mytime">Deine Angabe: ${esc(wahlKurz(h.zeit))}</div>` : ''}
       ${gym ? `<button type="button" class="zoek" data-zoek="${esc(zk)}" aria-pressed="${!!oek}">⚡ Zeitökonomisch${oek ? ' · an' : ' · ' + dauerText(dauerMin(z, true))}</button>` : ''}
-      ${oek ? zeitOekListe(z, t, mf) : `<ol class="ex">${ex}</ol>`}${einheitFelder(mf)}${t ? erledigtZeile(t, halb, z.titel) : ''}</article>`;
+      ${oek ? zeitOekListe(z, t, mf, zk) : `<ol class="ex">${ex}</ol>`}${einheitFelder(mf)}${t ? erledigtZeile(t, halb, z.titel) : ''}</article>`;
   }
   function erledigtZeile(t, halb, titel) {
     if (!S.d.rechte.erledigt || !t.datum || t.datum > S.d.heute || t.datum < plusTage(S.d.heute, -14)) return '';
@@ -556,13 +574,14 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     });
     return out;
   }
-  function zeitOekListe(z, t, mf) {
+  function zeitOekListe(z, t, mf, zk) {
     const f = heuteAktiv(t) ? finde(t.datum) : null;
     return '<ol class="ex zeit">' + zeitOek(z).map(o => {
       if (o.note) return `<li class="note">${esc(o.note)}</li>` + felderZeile(mf, o.idx);
       const e = o.x.e, kt = f && fuenfer(o.s.w) ? kraftTest(o.x.u, f.w) : null;
       const feld = kt && !S.gezeigt[kt.zelle] ? `<li class="feld">${heuteFeld(kt, o.x.u.trim() + ' · 5 WH')}</li>` : '';
-      return `<li class="satz${o.ss ? ' ss' : ''}${o.ende ? ' ende' : ''}"><span class="s">${o.s.nr}.</span><span class="n${vidKl(o.x.u)}">${uebName(o.x.u)}</span><span class="m">${o.s.w ? '<span>' + esc(o.s.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${o.ss ? '<span>Supersatz</span>' : e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span></li>${feld}${o.s.nr === o.x.saetze.length ? felderZeile(mf, e.idx) : ''}`;
+      const ak = zk ? zk + '|' + o.x.e.idx + '|' + o.s.nr : '', ab = ak && abListe()[ak];
+      return `<li class="satz${o.ss ? ' ss' : ''}${o.ende ? ' ende' : ''}${ab ? ' ab' : ''}"${ak ? ` data-ab="${esc(ak)}"` : ''}><span class="s">${o.s.nr}.</span><span class="n${vidKl(o.x.u)}">${uebName(o.x.u)}</span><span class="m">${o.s.w ? '<span>' + esc(o.s.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${o.ss ? '<span>Supersatz</span>' : e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span></li>${feld}${o.s.nr === o.x.saetze.length ? felderZeile(mf, e.idx) : ''}`;
     }).join('') + '</ol>';
   }
 
@@ -1026,6 +1045,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (ok) { const z = ok.dataset.ok, f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === z), p = S.pruef[z]; delete S.pruef[z];
       testSpeichern(f, t, p.neu, 'vorher ' + p.ref + ', Athlet hat bestätigt'); return; }
     const pc = e.target.closest('[data-pace]'); if (pc) { paceEditor(pc); return; }
+    const abz = e.target.closest('[data-ab]'); if (abz && !e.target.closest('a, button, input, label')) { abUmschalten(abz); return; }
     const zo = e.target.closest('[data-zoek]'); if (zo) { S.zoek[zo.dataset.zoek] = !S.zoek[zo.dataset.zoek]; render(); return; }
     const fl = e.target.closest('[data-flach]');
     if (fl) { const f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === fl.dataset.flach), key = S.d.heute + '|' + schluessel(t);
