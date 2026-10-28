@@ -373,6 +373,54 @@ h2::before { content: ""; width: 4px; height: 14px; border-radius: 2px; backgrou
 .card.group .card-h h3 { color: color-mix(in srgb, var(--bc) 65%, #fff); }
 .b-kraft { --bc: #4fc9c0 !important; } .b-schnell { --bc: #e6c170 !important; } .b-ausdauer { --bc: #7cc98a !important; }
 .b-sprung { --bc: #a08bf5 !important; } .b-koerper { --bc: #e8899a !important; } .b-watt { --bc: #7cc4f5 !important; } .b-puls { --bc: #e8768a !important; }
+
+/* Mehr Kontrast: neutraler Grafit-Grund statt Blau, Karten heller abgesetzt, Farben kräftiger getönt */
+:root:root:root {
+  --bg: #0e1015; --surface: #181b23; --surface2: #1d2129; --ink: #f2f4f8; --muted: #a0a7b4; --line: rgba(255,255,255,.09);
+  --brand: #0e1015; --accent: #7aa7ff;
+  --t-gym: rgba(79,201,192,.13); --t-plyo: rgba(160,139,245,.14); --t-sprint: rgba(230,193,112,.12); --t-track: rgba(111,155,255,.14); --t-none: rgba(255,255,255,.05);
+  --s-gym: #5fd8cd; --s-plyo: #b19eff; --s-sprint: #f0cd7c; --s-track: #82adff;
+  --mine: rgba(240,205,124,.10); --mine-line: rgba(240,205,124,.6);
+}
+html, body { background: linear-gradient(180deg, #0e1015, #121419) fixed; }
+.top { background: rgba(14,16,21,.9); }
+.tabs { background: rgba(16,18,24,.94); }
+.card, .day, .termin { background: var(--surface); border-color: var(--line); box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 6px 18px rgba(0,0,0,.35); }
+.unit { border: 1px solid color-mix(in srgb, var(--stripe) 35%, transparent); }
+.unit::before { width: 4px; }
+.unit-h h4 { color: color-mix(in srgb, var(--stripe) 35%, #fff); }
+.ex li { border-top-color: rgba(255,255,255,.07); }
+.ex li.feld .val, .messen { background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.06); }
+.card.group { padding-top: 0; overflow: hidden; }
+.card.group > .card-h { margin: 0 -14px 2px; padding: 12px 14px 10px; background: color-mix(in srgb, var(--bc) 14%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--bc) 30%, transparent); }
+.card.group .card-h h3 { color: color-mix(in srgb, var(--bc) 45%, #fff); }
+.video { background: color-mix(in srgb, var(--kc) 15%, var(--surface)); border-color: color-mix(in srgb, var(--kc) 45%, transparent); }
+.day > button { border-left: 3px solid transparent; }
+.day.today > button { border-left-color: var(--sec); }
+.slot i { width: 11px; height: 11px; }
+.cell.filled { background: var(--mine); }
+.chip { background: var(--surface2); }
+.sheet { background: var(--surface); }
+
+/* Heute: Sprungleiste oben, klare Abschnitte, Morgen eingeklappt */
+.sprung { position: sticky; top: calc(var(--topH, 70px) - 1px); z-index: 4; margin: -16px -16px 0; padding: 10px 16px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  background: rgba(14,16,21,.94); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+.sprung::-webkit-scrollbar { display: none; }
+.sprung a { --c: var(--accent); flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
+  background: color-mix(in srgb, var(--c) 9%, transparent); color: color-mix(in srgb, var(--c) 40%, #fff); font: 600 14px/1 var(--f-body); text-decoration: none; white-space: nowrap; }
+.sprung a i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.sprung a b { font: 700 12px/1 var(--f-num); background: var(--c); color: #10131a; border-radius: 99px; padding: 2px 6px; }
+.sprung a[aria-current="true"] { background: color-mix(in srgb, var(--c) 24%, transparent); border-color: var(--c); color: #fff; }
+.abschnitt { scroll-margin-top: calc(var(--topH, 70px) + 62px); }
+h2.abschnitt, .abschnitt > h2 { --c: var(--accent); font-size: 17px; color: color-mix(in srgb, var(--c) 45%, #fff); margin-top: 14px; padding-bottom: 6px; border-bottom: 1px solid color-mix(in srgb, var(--c) 30%, transparent); }
+h2.abschnitt::before { background: var(--c); height: 18px; }
+.aufgaben { display: grid; gap: 8px; }
+.aufgaben .video { padding: 10px 12px; }
+.aufgaben .video .vtxt b { font-size: 15px; }
+.zu { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; color: var(--ink); }
+.zu .zt { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.zu .zt b { font: 800 16px/1.2 var(--f-display); }
+.zu .zt span { color: var(--muted); font-size: 14px; }
 </style>
 
 </head>
@@ -710,6 +758,7 @@ h2::before { content: ""; width: 4px; height: 14px; border-radius: 2px; backgrou
   }
   function aufgabenKarten() {
     let html = '';
+    // (gesammelt unter "Deine Aufgaben", siehe viewHeute)
     if (S.d.rechte.voice && S.d.voice) html += aufgabeKarte('voice', 'Wochenrückblick', 'Kurze Voice-Nachricht an Hannes', 'Wie war deine Woche? Per WhatsApp, bis Sonntag.', '✓ Erledigt');
     // jeder offene Video-Auftrag einzeln, ältester zuerst
     if (S.d.rechte.video) (S.d.videos || []).forEach(v => {
@@ -763,22 +812,33 @@ h2::before { content: ""; width: 4px; height: 14px; border-radius: 2px; backgrou
   function viewHeute() {
     const heute = S.d.heute, f = finde(heute), m = finde(plusTage(heute, 1));
     S.gezeigt = {};
-    let html = aufgabenKarten();
-    if (!f) return html + '<div class="card"><div class="empty">Für diese Woche gibt es noch keinen Plan.</div></div>';
+    const auf = aufgabenKarten(), nav = [];
+    let html = '';
+    const abschnitt = (id, titel, farbe, zahl) => { nav.push({ id: id, titel: titel, farbe: farbe, zahl: zahl }); return `<h2 class="abschnitt" id="${id}" style="--c:${farbe}">${esc(titel)}</h2>`; };
+    if (auf) html += abschnitt('a-aufgaben', 'Deine Aufgaben', '#a08bf5', (auf.match(/class="video"/g) || []).length) + `<div class="aufgaben">${auf}</div>`;
+    if (!f) return sprungLeiste(nav) + html + '<div class="card"><div class="empty">Für diese Woche gibt es noch keinen Plan.</div></div>';
     const t = f.t;
     if (t.krank) html += '<div class="sick">Du hast dich für heute krank gemeldet. Gute Besserung!</div>';
     const mf = morgenFelder(f);
-    if (mf.length) html += `<h2>Heute früh</h2><div class="card">${mf.map(x => heuteFeld(x[0], x[1])).join('')}</div>`;
-    html += `<h2>Heute</h2><div class="card"><div class="card-h"><h3>${esc(t.tag)}</h3><small>${kurzDatum(t.datum)}</small></div>`;
-    const plan = tagPlan(t, true);
-    html += plan || '<div class="empty">Heute steht kein Training im Plan.</div>';
-    html += '</div>';
+    if (mf.length) html += abschnitt('a-frueh', 'Heute früh', '#e8899a') + `<div class="card">${mf.map(x => heuteFeld(x[0], x[1])).join('')}</div>`;
+    // jede Einheit von heute bekommt einen eigenen Abschnitt in ihrer Farbe
+    const farbeVon = h => ({ gym: '#5fd8cd', plyo: '#b19eff', sprint: '#f0cd7c', track: '#82adff' })[zerlege(h).art] || '#a0a7b4';
+    let plan = '';
+    [['vm', 'VM'], ['nm', 'NM']].forEach(([k, halb]) => {
+      if (!hatPlan(t[k])) return;
+      plan += abschnitt('a-' + k, halb + ' · ' + zerlege(t[k]).titel, farbeVon(t[k])) + einheit(t[k], halb, true, t);
+    });
+    if (t.notiz) plan += `<div class="hint"><b>Hinweis von Hannes</b>${esc(t.notiz)}</div>`;
+    html += plan || abschnitt('a-heute', 'Heute', '#7aa7ff') + '<div class="card"><div class="empty">Heute steht kein Training im Plan.</div></div>';
     if (m) {
-      html += `<h2>Morgen</h2><div class="card"><div class="card-h"><h3>${esc(m.t.tag)}</h3><small>${kurzDatum(m.t.datum)}</small></div>`;
-      html += tagPlan(m.t, true) || '<div class="empty">Morgen steht noch kein Training im Plan.</div>';
-      html += '</div>';
+      const offen = !!S.offen.morgen, kurz = [m.t.vm, m.t.nm].filter(hatPlan).map(h => zerlege(h).titel).join(' · ') || 'kein Training';
+      html += abschnitt('a-morgen', 'Morgen', '#a0a7b4');
+      html += offen
+        ? `<div class="card"><button type="button" class="zu" data-day="morgen" style="padding:0;border:0;background:none"><span class="zt"><b>${esc(m.t.tag)} ${kurzDatum(m.t.datum)}</b><span>Zuklappen</span></span><span class="chev" style="transform:rotate(90deg)">›</span></button>${tagPlan(m.t, true) || '<div class="empty">Morgen steht noch kein Training im Plan.</div>'}</div>`
+        : `<button type="button" class="zu" data-day="morgen"><span class="zt"><b>${esc(m.t.tag)} ${kurzDatum(m.t.datum)}</b><span>${esc(kurz)}</span></span><span class="chev">›</span></button>`;
     }
-    if (S.d.rechte.befinden) html += befindenKarte(f);
+    if (S.d.rechte.befinden) { nav.push({ id: 'a-befinden', titel: 'Befinden', farbe: '#5cc9a7' }); html += `<div class="abschnitt" id="a-befinden" style="--c:#5cc9a7">${befindenKarte(f)}</div>`; }
+    html = sprungLeiste(nav) + html;
     if (S.d.rechte.krank) html += `<div class="card"><label class="switch" for="krank"><span><b>Ich bin heute krank</b><br><span class="muted">Hannes sieht es sofort.</span></span><input type="checkbox" id="krank" ${t.krank ? 'checked' : ''}></label>
       <label class="switch" for="nichtgut"><span><b>Ich fühle mich nicht gut</b><br><span class="muted">Hannes sieht es sofort.</span></span><input type="checkbox" id="nichtgut" class="warn" ${(S.d.befinden || {})[heute] ? 'checked' : ''}></label></div>`;
     const v = S.d.daten[f.w.name].video;
@@ -786,6 +846,21 @@ h2::before { content: ""; width: 4px; height: 14px; border-radius: 2px; backgrou
     html += `<img class="logo" src="logo.png" alt="High Spirit Strength and Conditioning, Hannes Slavik">`;
     return html;
   }
+  function sprungLeiste(nav) {
+    if (nav.length < 2) return '';
+    return `<nav class="sprung" aria-label="Springe zu">${nav.map(n => `<a href="#${n.id}" data-sprung="${n.id}" style="--c:${n.farbe}"><i></i>${esc(n.titel)}${n.zahl ? `<b>${n.zahl}</b>` : ''}</a>`).join('')}</nav>`;
+  }
+  // markiert in der Sprungleiste den Abschnitt, in dem man gerade ist
+  function sprungSpy() {
+    const leiste = $('.sprung'); if (!leiste) return;
+    const oben = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 70) + 80;
+    let akt = '';
+    document.querySelectorAll('.abschnitt').forEach(a => { if (a.getBoundingClientRect().top <= oben) akt = a.id; });
+    if (!akt) { const erst = $('.abschnitt'); akt = erst ? erst.id : ''; }
+    leiste.querySelectorAll('a').forEach(x => { const an = x.dataset.sprung === akt; if ((x.getAttribute('aria-current') === 'true') !== an) { x.setAttribute('aria-current', an); if (an) x.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } });
+  }
+  let spyRaf = 0;
+  window.addEventListener('scroll', () => { if (!spyRaf) spyRaf = requestAnimationFrame(() => { spyRaf = 0; sprungSpy(); }); }, { passive: true });
   function befindenKarte(f) {
     const b = f.t.befinden;
     return `<h2>Wie geht's dir?</h2><form class="card" id="befinden">
@@ -1142,6 +1217,8 @@ h2::before { content: ""; width: 4px; height: 14px; border-radius: 2px; backgrou
     if (S.tab === 'zeiten') laden(S.wocheZ);
     v.innerHTML = { heute: viewHeute, woche: viewWoche, zeiten: viewZeiten, termine: viewTermine, werte: viewWerte }[S.tab]();
     document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === S.tab ? 'page' : 'false'));
+    const top = $('.top'); if (top) document.documentElement.style.setProperty('--topH', top.offsetHeight + 'px');
+    sprungSpy();
   }
 
   document.addEventListener('click', e => {
@@ -1149,6 +1226,8 @@ h2::before { content: ""; width: 4px; height: 14px; border-radius: 2px; backgrou
     if (tab) { S.tab = tab.dataset.tab; render(); window.scrollTo(0, 0); return; }
     const ww = e.target.closest('[data-ww]'); if (ww) { S.wocheW = ww.dataset.ww; render(); return; }
     const wz = e.target.closest('[data-wz]'); if (wz) { S.wocheZ = wz.dataset.wz; render(); return; }
+    const sp = e.target.closest('[data-sprung]');
+    if (sp) { e.preventDefault(); const z = document.getElementById(sp.dataset.sprung); if (z) z.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     const day = e.target.closest('[data-day]'); if (day) { S.offen[day.dataset.day] = !S.offen[day.dataset.day]; render(); return; }
     const slot = e.target.closest('[data-slot]'); if (slot) { const [i, h] = slot.dataset.slot.split('|'); slotEditor(Number(i), h); return; }
     const ch = e.target.closest('[data-chart]'); if (ch) { S.chartOffen = S.chartOffen === ch.dataset.chart ? '' : ch.dataset.chart; chartAnimieren(S.chartOffen); render(); return; }
