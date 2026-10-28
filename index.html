@@ -348,6 +348,27 @@ h2 { color: #c7d6ff; }
 .wahl button[aria-pressed="true"], .sheet .feel button[aria-pressed="true"], .feel button[aria-pressed="true"] { color: #f3e2b8; }
 .toast { background: var(--surface2); color: var(--ink); border: 1px solid rgba(111,155,255,.35); }
 .status { background: rgba(111,155,255,.12); color: #c7d6ff; }
+
+/* Orientierung über Farben: jeder Reiter und jeder Bereich hat seine eigene, dezente Farbe (gleich wie im Dashboard) */
+body { --sec: #6f9bff; }
+body[data-tab="woche"] { --sec: #4fc9c0; } body[data-tab="zeiten"] { --sec: #e6c170; }
+body[data-tab="termine"] { --sec: #e8899a; } body[data-tab="werte"] { --sec: #a08bf5; }
+.tabs button[data-tab="heute"] { --tc: #6f9bff; } .tabs button[data-tab="woche"] { --tc: #4fc9c0; } .tabs button[data-tab="zeiten"] { --tc: #e6c170; }
+.tabs button[data-tab="termine"] { --tc: #e8899a; } .tabs button[data-tab="werte"] { --tc: #a08bf5; }
+.tabs button { position: relative; }
+.tabs button[aria-current="page"] { color: var(--tc); }
+.tabs button[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 28%; right: 28%; height: 2px; border-radius: 0 0 2px 2px; background: var(--tc); }
+.top { border-bottom-color: color-mix(in srgb, var(--sec) 35%, transparent); }
+h2 { color: color-mix(in srgb, var(--sec) 70%, #fff); display: flex; align-items: center; gap: 8px; }
+h2::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--sec); }
+.chip[aria-pressed="true"], .seg button[aria-pressed="true"] { background: color-mix(in srgb, var(--sec) 15%, transparent); color: color-mix(in srgb, var(--sec) 55%, #fff); border-color: color-mix(in srgb, var(--sec) 45%, transparent); }
+.day.today { border-color: color-mix(in srgb, var(--sec) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--sec) 25%, transparent); }
+.termin.hl { border-color: color-mix(in srgb, var(--sec) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--sec) 25%, transparent); }
+.tcount { color: var(--sec); }
+.card.group { --bc: var(--s-none); border-left: 3px solid var(--bc); }
+.card.group .card-h h3 { color: color-mix(in srgb, var(--bc) 65%, #fff); }
+.b-kraft { --bc: #4fc9c0 !important; } .b-schnell { --bc: #e6c170 !important; } .b-ausdauer { --bc: #7cc98a !important; }
+.b-sprung { --bc: #a08bf5 !important; } .b-koerper { --bc: #e8899a !important; } .b-watt { --bc: #7cc4f5 !important; } .b-puls { --bc: #e8768a !important; }
 </style>
 
 </head>
@@ -1014,7 +1035,7 @@ h2 { color: #c7d6ff; }
     w.tests.forEach(t => { const b = /puls/i.test(t.name) ? 'PULS' : t.bereich; let g = gruppen.find(x => x.b === b); if (!g) gruppen.push(g = { b: b, z: b === t.bereich ? t.zusatz : '', t: [] }); g.t.push(t); });
     gruppen.sort((x, y) => (x.b === 'PULS') - (y.b === 'PULS'));
     gruppen.forEach(g => {
-      html += `<div class="card group"><div class="card-h"><h3>${esc(titel(g.b))}</h3>${g.z ? `<small>${esc(g.z)}</small>` : ''}</div>`;
+      html += `<div class="card group ${bereichKl(g.b)}"><div class="card-h"><h3>${esc(titel(g.b))}</h3>${g.z ? `<small>${esc(g.z)}</small>` : ''}</div>`;
       g.t.forEach(t => {
         const id = 'v_' + t.zelle, pace = /pace/i.test(t.name), k = schluessel(t), offen = S.chartOffen === k;
         const last = t.zuletzt ? `Zuletzt: ${esc(t.zuletzt)} ${esc(einheitKurz(t.einheit))} (Woche ${esc(t.zuletztWoche)})` : 'Noch kein früherer Wert';
@@ -1106,8 +1127,13 @@ h2 { color: #c7d6ff; }
       if (w && w.tage) Object.values(S.d.daten).forEach(x => { if (x && x.folgeMontag && x.folgeMontag.datum === w.tage[0].datum) ['vm', 'nm'].forEach(h => { if (x.folgeMontag[h].zeit && !w.tage[0][h].zeit) w.tage[0][h].zeit = x.folgeMontag[h].zeit; }); });
       S.d.daten[name] = w; render(); }).catch(e => { toast(e.message || 'Woche konnte nicht geladen werden.'); });
   }
+  function bereichKl(b) {
+    const x = String(b || '').toLowerCase();
+    return /kraft/.test(x) ? 'b-kraft' : /schnell/.test(x) ? 'b-schnell' : /ausdauer/.test(x) ? 'b-ausdauer' : /sprung|technik/.test(x) ? 'b-sprung'
+      : /körper|koerper/.test(x) ? 'b-koerper' : /watt/.test(x) ? 'b-watt' : /puls/.test(x) ? 'b-puls' : '';
+  }
   function render() {
-    const v = $('#view');
+    const v = $('#view'); document.body.dataset.tab = S.tab;
     if (S.tab === 'woche') laden(S.wocheW);
     if (S.tab === 'zeiten') laden(S.wocheZ);
     v.innerHTML = { heute: viewHeute, woche: viewWoche, zeiten: viewZeiten, termine: viewTermine, werte: viewWerte }[S.tab]();
