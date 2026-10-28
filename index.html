@@ -752,6 +752,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (!w) return html + '<div class="loading">Lade Woche …</div>';
     if (w.alt) return html + '<div class="card"><div class="empty">Diese Woche ist noch im alten Format.</div></div>';
     if (!S.d.rechte.zeiten) return html + '<div class="card"><div class="empty">Zeiten eintragen ist für dich gerade nicht freigeschaltet.</div></div>';
+    stdAuto(w);
+    if (stdMerk().wochen[w.name] === 2) html += '<div class="card"><div class="muted">Deine Standardwoche ist schon eingetragen. Tipp einzelne Halbtage an, um sie zu ändern, oder leer die Woche ganz.</div></div>';
     html += '<div class="card"><div class="grid"><div></div><div class="gh">Vormittag</div><div class="gh">Nachmittag</div>';
     zTage(w).forEach((t, i) => {
       html += t.folge
@@ -765,7 +767,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     });
     html += '</div></div><div class="row-btns">';
     html += `<button class="btn wide" type="button" id="stdEin" ${S.d.standard && S.d.standard.some(Boolean) ? '' : 'disabled'}>Standardwoche einsetzen</button>`;
-    html += '<button class="btn sec wide" type="button" id="stdSpeichern">Als Standardwoche speichern</button></div>';
+    html += '<button class="btn sec wide" type="button" id="stdSpeichern">Als Standardwoche speichern</button>';
+    html += '<button class="btn sec wide" type="button" id="wocheLeeren">Woche leeren</button></div>';
     if (!S.d.standard || !S.d.standard.some(Boolean)) html += '<div class="muted">Noch keine Standardwoche gespeichert. Füll eine Woche aus und tippe auf „Als Standardwoche speichern“. Ab dann reicht ein Tipp pro Woche.</div>';
     return html;
   }
@@ -796,6 +799,25 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   }
   const wahlKurz = v => { const a = wahlAnzeige(v); return (a.oben ? a.oben + ': ' : '') + a.text + (a.notiz ? ' (' + a.notiz + ')' : ''); };
   // Zeiten: die 7 Tage plus der Montag danach (steht im Sheet am Ende der Woche, AK–AO)
+  // Standardwoche: einmal eingesetzt, wird jede kommende Woche beim ersten Öffnen damit vorbelegt (leere Halbtage).
+  // Danach frei änderbar oder leerbar, die Woche wird nicht nochmal befüllt. Merker nur auf diesem Handy.
+  function stdMerk() {
+    if (!S.std) { try { S.std = JSON.parse(localStorage.getItem('hs_std_' + S.k) || 'null'); } catch (e) {} S.std = S.std || { an: false, wochen: {} }; }
+    return S.std;
+  }
+  function stdSichern() { try { localStorage.setItem('hs_std_' + S.k, JSON.stringify(S.std)); } catch (e) {} }
+  function stdSetzen(w, nurLeere) {
+    zTage(w).forEach((t, i) => ['vm', 'nm'].forEach((h, j) => {
+      const wert = S.d.standard[(i % 7) * 2 + j] || '';
+      if (nurLeere && t[h].zeit) return;
+      if (t[h].zeit !== wert) { t[h].zeit = wert; S.geaendert[w.name + '|' + t[h].zelle] = true; merken(w.name, t[h].zelle, wert); }
+    }));
+  }
+  function stdAuto(w) {
+    const m = stdMerk();
+    if (!m.an || m.wochen[w.name] || !S.d.standard || !S.d.standard.some(Boolean) || !w.tage.length || w.tage[0].datum <= S.d.heute) return;
+    m.wochen[w.name] = 2; stdSichern(); stdSetzen(w, true);
+  }
   const zTage = w => w.folgeMontag ? w.tage.concat([w.folgeMontag]) : w.tage;
   function slotEditor(i, h, z) {
     const w = S.d.daten[S.wocheZ], t = zTage(w)[i], s = t[h], vm = h === 'vm';
@@ -1080,12 +1102,15 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const fix = e.target.closest('[data-fix]');
     if (fix) { const z = fix.dataset.fix; delete S.pruef[z]; render(); const inp = document.getElementById('v_' + z) || document.getElementById('h_' + z); if (inp) { inp.focus(); inp.select(); } return; }
     if (e.target.id === 'stdEin') {
+      const w = S.d.daten[S.wocheZ], m = stdMerk();
+      stdSetzen(w, false); m.an = true; m.wochen[w.name] = 1; stdSichern();
+      render(); toast('Standardwoche eingesetzt. Ab jetzt steht sie in jeder neuen Woche schon drin.'); return;
+    }
+    if (e.target.id === 'wocheLeeren') {
       const w = S.d.daten[S.wocheZ];
-      zTage(w).forEach((t, i) => ['vm', 'nm'].forEach((h, j) => {
-        const wert = S.d.standard[(i % 7) * 2 + j] || '';
-        if (t[h].zeit !== wert) { t[h].zeit = wert; S.geaendert[w.name + '|' + t[h].zelle] = true; merken(w.name, t[h].zelle, wert); }
-      }));
-      render(); toast('Standardwoche eingesetzt. Einzelne Halbtage kannst du antippen und ändern.'); return;
+      if (!confirm('Alle Halbtage dieser Woche leeren?')) return;
+      zTage(w).forEach(t => ['vm', 'nm'].forEach(h => { if (t[h].zeit) { t[h].zeit = ''; S.geaendert[w.name + '|' + t[h].zelle] = true; merken(w.name, t[h].zelle, ''); } }));
+      stdMerk().wochen[w.name] = 1; stdSichern(); render(); toast('Woche geleert'); return;
     }
     if (e.target.id === 'stdSpeichern') {
       const w = S.d.daten[S.wocheZ], werte = [];
