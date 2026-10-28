@@ -494,6 +494,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (rp) liste.push([such(/^ruhepuls/), rp]);
     return liste.filter(x => x[0]);
   }
+  // kein Häkchen „Standardbedingungen“ bei Trittfrequenz und Wattkurbel (Hannes)
+  const OHNE_BEDINGUNG = /ergometer|trittfrequenz|wattkurbel/i;
   function heuteFeld(t, anlass) {
     const z = t.zelle, id = 'h_' + z, pace = /pace/i.test(t.name), k = schluessel(t), p = S.pruef[z];
     const mw = (S.d.messwerte || {})[S.d.heute + '|' + k] || {}, wert = p ? p.neu : (mw.wert || '');
@@ -504,7 +506,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       <div class="inp"><input id="${id}" data-heute="${esc(z)}" data-anlass="${esc(anlass || '')}" ${pace ? `data-pace="${esc(z)}" readonly` : 'inputmode="decimal"'} placeholder="${pace ? 'm:ss' : '–'}" value="${esc(wert)}" autocomplete="off"></div>
       <div class="unit-l">${esc(t.einheit)}</div>
       ${last ? `<div class="last"><span>${last}</span></div>` : ''}
-      ${t.bedingung !== undefined ? `<button type="button" class="std${t.bedingung ? ' on' : wert ? ' warn' : ''}" data-std="${esc(z)}" aria-pressed="${t.bedingung}"><span class="box">${t.bedingung ? '✓' : ''}</span><span>Standardbedingungen erfüllt<small>Kein starker Wind, trockene Strecke, gleicher Untergrund</small></span></button>` : ''}
+      ${t.bedingung !== undefined && !OHNE_BEDINGUNG.test(t.name) ? `<button type="button" class="std${t.bedingung ? ' on' : wert ? ' warn' : ''}" data-std="${esc(z)}" aria-pressed="${t.bedingung}"><span class="box">${t.bedingung ? '✓' : ''}</span><span>Standardbedingungen erfüllt<small>Kein starker Wind, trockene Strecke, gleicher Untergrund</small></span></button>` : ''}
       ${rad ? `<button type="button" class="std${flach ? ' on' : wert ? ' warn' : ''}" data-flach="${esc(z)}" aria-pressed="${flach}"><span class="box">${flach ? '✓' : ''}</span><span>Strecke war flach<small>Die schnellsten 10 km in der Ebene</small></span></button>` : ''}
       ${p ? `<div class="check" role="alert"><b>Stimmt das?</b> Letztes Mal ${esc(p.ref)}, jetzt ${esc(p.neu)} ${esc(einheitKurz(t.einheit))}. Das ist ein großer Sprung.
         <div class="row-btns"><button class="btn" type="button" data-ok="${esc(z)}">Ja, stimmt</button><button class="btn sec" type="button" data-fix="${esc(z)}">Korrigieren</button></div></div>` : ''}</div>`;
@@ -1142,7 +1144,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     const alt = t.wert; t.wert = wert;
     const mt = S.meta[t.zelle];
     if (mt) { S.d.messwerte = S.d.messwerte || {}; const key = mt.datum + '|' + schluessel(t); S.d.messwerte[key] = Object.assign(S.d.messwerte[key] || {}, { wert: wert }); }
-    if (wert && t.bedingung === false) setTimeout(() => toast('Gespeichert. Bitte noch bestätigen: Standardbedingungen erfüllt?'), 1600);
+    if (wert && t.bedingung === false && !OHNE_BEDINGUNG.test(t.name)) setTimeout(() => toast('Gespeichert. Bitte noch bestätigen: Standardbedingungen erfüllt?'), 1600);
     S.hinweise[t.zelle] = hinweis;
     merken(f.w.name, t.zelle, wert);
     if (S.verlauf) {   // eigenen neuen Wert gleich im Verlauf zeigen
