@@ -351,10 +351,10 @@ h2 { color: #c7d6ff; }
 
 /* Orientierung über Farben: jeder Reiter und jeder Bereich hat seine eigene, dezente Farbe (gleich wie im Dashboard) */
 body { --sec: #6f9bff; }
-body[data-tab="woche"] { --sec: #4fc9c0; } body[data-tab="zeiten"] { --sec: #e6c170; }
-body[data-tab="termine"] { --sec: #e8899a; } body[data-tab="werte"] { --sec: #a08bf5; }
-.tabs button[data-tab="heute"] { --tc: #6f9bff; } .tabs button[data-tab="woche"] { --tc: #4fc9c0; } .tabs button[data-tab="zeiten"] { --tc: #e6c170; }
-.tabs button[data-tab="termine"] { --tc: #e8899a; } .tabs button[data-tab="werte"] { --tc: #a08bf5; }
+body[data-tab="woche"] { --sec: #e6c170; } body[data-tab="zeiten"] { --sec: #5cc9a7; }
+body[data-tab="termine"] { --sec: #d99a6c; } body[data-tab="werte"] { --sec: #4fc9c0; }
+.tabs button[data-tab="heute"] { --tc: #6f9bff; } .tabs button[data-tab="woche"] { --tc: #e6c170; } .tabs button[data-tab="zeiten"] { --tc: #5cc9a7; }
+.tabs button[data-tab="termine"] { --tc: #d99a6c; } .tabs button[data-tab="werte"] { --tc: #4fc9c0; }
 .tabs button { position: relative; }
 .tabs button[aria-current="page"] { color: var(--tc); }
 .tabs button[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 28%; right: 28%; height: 2px; border-radius: 0 0 2px 2px; background: var(--tc); }
@@ -365,6 +365,10 @@ h2::before { content: ""; width: 4px; height: 14px; border-radius: 2px; backgrou
 .day.today { border-color: color-mix(in srgb, var(--sec) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--sec) 25%, transparent); }
 .termin.hl { border-color: color-mix(in srgb, var(--sec) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--sec) 25%, transparent); }
 .tcount { color: var(--sec); }
+.video { --kc: #a08bf5; background: linear-gradient(180deg, color-mix(in srgb, var(--kc) 10%, var(--surface2)), var(--surface)); border: 1px solid color-mix(in srgb, var(--kc) 35%, transparent); }
+.video[id^="karte-voice"] { --kc: #c792e0; }
+.video .vtxt span { color: color-mix(in srgb, var(--kc) 70%, #fff); }
+.vok { background: color-mix(in srgb, var(--kc) 85%, #2a2350); color: #fff; }
 .card.group { --bc: var(--s-none); border-left: 3px solid var(--bc); }
 .card.group .card-h h3 { color: color-mix(in srgb, var(--bc) 65%, #fff); }
 .b-kraft { --bc: #4fc9c0 !important; } .b-schnell { --bc: #e6c170 !important; } .b-ausdauer { --bc: #7cc98a !important; }
