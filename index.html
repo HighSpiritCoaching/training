@@ -164,6 +164,7 @@ a.link { color: var(--accent); font-weight: 600; }
 .ex.zeit li.ende { margin-bottom: 8px; }
 .ulink { color: inherit; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
 .ulink .play { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 10px; vertical-align: 2px; text-decoration: none; }
+.unit-h .dauer { flex-basis: 100%; font: 600 14px/1.2 var(--f-num); color: var(--muted); }
 .zoek { justify-self: start; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: 600 14px/1 var(--f-num); }
 .zoek[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .inp .ro { width: 100%; text-align: right; font: 700 19px/1 var(--f-num); padding: 10px 2px; font-variant-numeric: tabular-nums; }
@@ -416,9 +417,9 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       ? `<li class="note">${esc(e.note)}</li>`
       : `<li><span class="s">${e.s ? esc(e.s) + '×' : ''}</span><span class="n">${uebName(e.u)}</span>${(e.w || e.p || e.pa) ? `<span class="m">${e.w ? '<span>' + esc(e.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span>` : ''}</li>`) + felderZeile(mf, e.idx)).join('');
     return `<article class="unit ${z.art}">
-      <div class="unit-h"><span class="half">${halb}</span><h4>${esc(z.titel)}</h4>${z.saetze ? `<span class="sets">${esc(z.saetze)} Sätze</span>` : ''}</div>
+      <div class="unit-h"><span class="half">${halb}</span><h4>${esc(z.titel)}</h4>${z.saetze ? `<span class="sets">${esc(z.saetze)} Sätze</span>` : ''}<span class="dauer" title="geschätzt mit Satzpausen">⏱ ${dauerText(dauerMin(z, oek))}</span></div>
       ${mitZeit && h.zeit ? `<div class="mytime">Deine Angabe: ${esc(wahlKurz(h.zeit))}</div>` : ''}
-      ${gym ? `<button type="button" class="zoek" data-zoek="${esc(zk)}" aria-pressed="${!!oek}">⏱ Zeitökonomisch${oek ? ' · an' : ''}</button>` : ''}
+      ${gym ? `<button type="button" class="zoek" data-zoek="${esc(zk)}" aria-pressed="${!!oek}">⚡ Zeitökonomisch${oek ? ' · an' : ' · ' + dauerText(dauerMin(z, true))}</button>` : ''}
       ${oek ? zeitOekListe(z, t, mf) : `<ol class="ex">${ex}</ol>`}${einheitFelder(mf)}${t ? erledigtZeile(t, halb, z.titel) : ''}</article>`;
   }
   function erledigtZeile(t, halb, titel) {
@@ -549,7 +550,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       if (!p) { x.saetze.forEach(s => out.push({ x: x, s: s })); return; }
       fertig.add(p);
       const n = Math.max(x.saetze.length, p.saetze.length);
-      for (let i = 0; i < n; i++) { if (x.saetze[i]) out.push({ x: x, s: x.saetze[i], ss: true }); if (p.saetze[i]) out.push({ x: p, s: p.saetze[i], ss: true }); }
+      const pp = Math.max(pauseSek(x.e.pa), pauseSek(p.e.pa));
+      for (let i = 0; i < n; i++) { if (x.saetze[i]) out.push({ x: x, s: x.saetze[i], ss: true, pp: pp }); if (p.saetze[i]) out.push({ x: p, s: p.saetze[i], ss: true, pp: pp }); }
       out[out.length - 1].ende = true;
     });
     return out;
@@ -563,6 +565,42 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       return `<li class="satz${o.ss ? ' ss' : ''}${o.ende ? ' ende' : ''}"><span class="s">${o.s.nr}.</span><span class="n">${uebName(o.x.u)}</span><span class="m">${o.s.w ? '<span>' + esc(o.s.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${o.ss ? '<span>Supersatz</span>' : e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span></li>${feld}${o.s.nr === o.x.saetze.length ? felderZeile(mf, e.idx) : ''}`;
     }).join('') + '</ol>';
   }
+
+  // ---------- Dauer einer Einheit (Schätzung) ----------
+  // Satz: 8 WH ≈ 45 s inkl. Vorbereiten (15 s + 3,75 s je WH); Zeitangaben wie "5 sek" + 15 s; ohne Angabe 30 s.
+  // Pause aus dem Plan (Minuten, "90 s" auch möglich), sonst 1 min. Notizen mit "10'" / "15 min" zählen mit.
+  // Ausdauer ohne Zeitangabe: Lauf 6 min/km, Rennrad 2,4 min/km, Schwimmen 25 min/km.
+  const satzSek = r => { const x = String(r || ''), m = x.match(/(\d+)\s*(s|sek)/i), n = parseInt(x, 10); return m ? Number(m[1]) + 15 : n ? 15 + n * 3.75 : 30; };
+  const pauseSek = p => { const x = String(p || '').replace(',', '.'), n = parseFloat(x); return !n ? 60 : /s|sek/i.test(x) ? n : n * 60; };
+  function textMin(t) {
+    const x = String(t || '').toLowerCase(), m = x.match(/(\d+)\s*(?:'|’|min\b)/);
+    if (m) return Number(m[1]);
+    const km = x.match(/(\d+(?:[.,]\d+)?)\s*km/), k = km ? Number(km[1].replace(',', '.')) : 0;
+    if (k && /lauf|jogg/.test(x)) return k * 6;
+    if (k && /rennrad|rad\b|bike/.test(x)) return k * 2.4;
+    if (k && /schwimm/.test(x)) return k * 25;
+    return 0;
+  }
+  function dauerMin(z, oek) {
+    let sek = textMin(z.titel) * 60, letztePause = 0;
+    if (oek) {
+      zeitOek(z).forEach(o => {
+        if (o.note) { sek += textMin(o.note) * 60; return; }
+        sek += satzSek(o.s.w);
+        letztePause = o.ss ? o.pp / 2 : pauseSek(o.x.e.pa);   // Supersatz: eine Pause pro Runde
+        sek += letztePause;
+      });
+    } else {
+      z.ex.forEach(e => {
+        if (e.note) { sek += textMin(e.note) * 60; return; }
+        const tm = textMin(e.u);
+        if (tm && !e.w) { sek += tm * 60; return; }
+        wiederh(e.w, e.s).forEach(r => { sek += satzSek(r); letztePause = pauseSek(e.pa); sek += letztePause; });
+      });
+    }
+    return Math.max(5, Math.round((sek - letztePause) / 60 / 5) * 5);
+  }
+  const dauerText = m => m >= 60 ? 'ca. ' + Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '') : 'ca. ' + m + ' min';
 
   // ---------- Heute ----------
   // Aufgaben ganz oben auf Heute: Voice-Nachricht (Fr–So) und Videoanalyse. Abhaken = Effekt und weg.
