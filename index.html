@@ -390,11 +390,11 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   }
   function zerlege(h) {
     const r = { titel: '', saetze: '', ex: [] };
-    h.zeilen.forEach(z => {
+    h.zeilen.forEach((z, idx) => {
       const [s, u, w, p, pa] = z;
       if (s && !u && !w && !p && !pa && /^\d+$/.test(s)) { r.saetze = s; return; }
-      if (u && !s && !w && !p && !pa) { if (!r.titel && !r.ex.length) r.titel = u; else r.ex.push({ note: u }); return; }
-      r.ex.push({ s: s, u: u, w: w, p: p, pa: pa });
+      if (u && !s && !w && !p && !pa) { if (!r.titel && !r.ex.length) r.titel = u; else r.ex.push({ note: u, idx: idx }); return; }
+      r.ex.push({ s: s, u: u, w: w, p: p, pa: pa, idx: idx });
     });
     if (!r.titel && r.ex.length) r.titel = 'Training';
     r.art = art(r.titel, h.farbe);
@@ -402,15 +402,15 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   }
   const hatPlan = h => h && h.zeilen && h.zeilen.length > 0;
   function einheit(h, halb, mitZeit, t) {
-    const z = zerlege(h), gym = t && istGym(z), zk = t ? t.datum + '|' + halb : '', oek = gym && S.zoek[zk];
-    const ex = oek ? '' : z.ex.map(e => e.note
+    const z = zerlege(h), gym = t && istGym(z), zk = t ? t.datum + '|' + halb : '', oek = gym && S.zoek[zk], mf = messFelderHeute(h, t);
+    const ex = oek ? '' : z.ex.map(e => (e.note
       ? `<li class="note">${esc(e.note)}</li>`
-      : `<li><span class="s">${e.s ? esc(e.s) + '×' : ''}</span><span class="n">${esc(e.u)}</span>${(e.w || e.p || e.pa) ? `<span class="m">${e.w ? '<span>' + esc(e.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span>` : ''}</li>`).join('');
+      : `<li><span class="s">${e.s ? esc(e.s) + '×' : ''}</span><span class="n">${esc(e.u)}</span>${(e.w || e.p || e.pa) ? `<span class="m">${e.w ? '<span>' + esc(e.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span>` : ''}</li>`) + felderZeile(mf, e.idx)).join('');
     return `<article class="unit ${z.art}">
       <div class="unit-h"><span class="half">${halb}</span><h4>${esc(z.titel)}</h4>${z.saetze ? `<span class="sets">${esc(z.saetze)} Sätze</span>` : ''}</div>
       ${mitZeit && h.zeit ? `<div class="mytime">Deine Angabe: ${esc(wahlKurz(h.zeit))}</div>` : ''}
       ${gym ? `<button type="button" class="zoek" data-zoek="${esc(zk)}" aria-pressed="${!!oek}">⏱ Zeitökonomisch${oek ? ' · an' : ''}</button>` : ''}
-      ${oek ? zeitOekListe(z, t) : `<ol class="ex">${ex}</ol>`}${heuteAktiv(t) ? einheitFelder(h, t) : ''}${t ? erledigtZeile(t, halb, z.titel) : ''}</article>`;
+      ${oek ? zeitOekListe(z, t, mf) : `<ol class="ex">${ex}</ol>`}${einheitFelder(mf)}${t ? erledigtZeile(t, halb, z.titel) : ''}</article>`;
   }
   function erledigtZeile(t, halb, titel) {
     if (!S.d.rechte.erledigt || !t.datum || t.datum > S.d.heute || t.datum < plusTage(S.d.heute, -14)) return '';
@@ -454,19 +454,19 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     return null;
   }
   function messFelder(h, w) {
-    const out = [], add = (t, a) => { if (t && !out.some(x => x.t === t)) out.push({ t: t, anlass: a }); };
+    const out = [], add = (t, a, idx) => { if (t && !out.some(x => x.t === t)) out.push({ t: t, anlass: a, idx: idx }); };
     const such = re => w.tests.find(t => re.test(t.name.toLowerCase()));
-    h.zeilen.forEach(([s, u, wh]) => { const t = u && kraftTest(u, w); if (t && wiederh(wh, s).some(fuenfer)) add(t, u.trim() + ' · 5 WH'); });
+    h.zeilen.forEach(([s, u, wh], i) => { const t = u && kraftTest(u, w); if (t && wiederh(wh, s).some(fuenfer)) add(t, u.trim() + ' · 5 WH', i); });
     const zeilen = h.zeilen.map(z => z.join(' ').toLowerCase()), alles = zeilen.join(' \n ');
-    PLAN_REGELN.forEach(([re, a, ziele]) => { if (re.test(alles)) ziele.forEach(r => add(such(r), a)); });
-    zeilen.forEach(l => {
+    PLAN_REGELN.forEach(([re, a, ziele]) => { const i = zeilen.findIndex(l => re.test(l)); if (i >= 0) ziele.forEach(r => add(such(r), a, i)); });
+    zeilen.forEach((l, i) => {
       const km = (l.match(/(\d+(?:[.,]\d+)?)\s*km/) || [])[1], m = (l.match(/(\d{3,5})\s*m\b/) || [])[1];
       const k = km ? Number(km.replace(',', '.')) : m ? Number(m) / 1000 : null;
-      if (/lauf\b|laufen\b|jogg/.test(l) && !/steigerung|anlauf|ablauf|verlauf|auslauf|shuttle/.test(l) && (k === null || k <= 10)) add(such(/^laufen/), 'Lauf' + (k ? ' ' + String(k).replace('.', ',') + ' km' : ''));
-      if (/schwimm/.test(l) && (k === null || k >= 1)) add(such(/^schwimmen/), 'Schwimmen' + (k ? ' ' + String(k).replace('.', ',') + ' km' : ''));
-      if (/rennrad|road\s*bike/.test(l) && (k === null || k <= 40)) add(such(/^rennrad/), 'Rennrad' + (k ? ' ' + String(k).replace('.', ',') + ' km' : ''));
+      if (/lauf\b|laufen\b|jogg/.test(l) && !/steigerung|anlauf|ablauf|verlauf|auslauf|shuttle/.test(l) && (k === null || k <= 10)) add(such(/^laufen/), 'Lauf' + (k ? ' ' + String(k).replace('.', ',') + ' km' : ''), i);
+      if (/schwimm/.test(l) && (k === null || k >= 1)) add(such(/^schwimmen/), 'Schwimmen' + (k ? ' ' + String(k).replace('.', ',') + ' km' : ''), i);
+      if (/rennrad|road\s*bike/.test(l) && (k === null || k <= 40)) add(such(/^rennrad/), 'Rennrad' + (k ? ' ' + String(k).replace('.', ',') + ' km' : ''), i);
     });
-    if (/ergo/.test(alles) && /ga\s*2/.test(alles)) add(such(/^ergometer/), 'Ergometer GA2');
+    if (/ergo/.test(alles) && /ga\s*2/.test(alles)) add(such(/^ergometer/), 'Ergometer GA2', zeilen.findIndex(l => /ergo/.test(l)));
     return out;
   }
   // Morgens: Gewicht Mo/Mi/Sa, Größe am Monatsersten, Ruhepuls (erste 2 Wochen jeden 2. Tag, bei krank / nicht gut)
@@ -499,11 +499,16 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       ${p ? `<div class="check" role="alert"><b>Stimmt das?</b> Letztes Mal ${esc(p.ref)}, jetzt ${esc(p.neu)} ${esc(einheitKurz(t.einheit))}. Das ist ein großer Sprung.
         <div class="row-btns"><button class="btn" type="button" data-ok="${esc(z)}">Ja, stimmt</button><button class="btn sec" type="button" data-fix="${esc(z)}">Korrigieren</button></div></div>` : ''}</div>`;
   }
-  function einheitFelder(h, t) {
-    const f = finde(t.datum);
-    if (!f || !f.w.tests) return '';
-    const liste = messFelder(h, f.w).filter(x => !S.gezeigt[x.t.zelle]);
+  // Felder einer Plan-Zeile (direkt unter der Übung)
+  const felderZeile = (mf, idx) => mf.filter(x => x.idx === idx && !S.gezeigt[x.t.zelle]).map(x => `<li class="feld">${heuteFeld(x.t, x.anlass)}</li>`).join('');
+  // was keiner Übung zuzuordnen ist (z. B. aus dem Titel der Einheit), kommt ans Ende
+  function einheitFelder(mf) {
+    const liste = mf.filter(x => !S.gezeigt[x.t.zelle]);
     return liste.length ? `<div class="messen"><b>Werte eintragen</b>${liste.map(x => heuteFeld(x.t, x.anlass)).join('')}</div>` : '';
+  }
+  function messFelderHeute(h, t) {
+    const f = heuteAktiv(t) ? finde(t.datum) : null;
+    return f && f.w.tests ? messFelder(h, f.w) : [];
   }
   const heuteAktiv = t => t && t.datum === S.d.heute && S.tab === 'heute';
 
@@ -517,7 +522,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   const uebTyp = u => { const x = u.toLowerCase(); return UNTEN.test(x) ? 'unten' : ZUG.test(x) ? 'zug' : DRUECK.test(x) ? 'drueck' : ''; };
   const istGym = (z) => z.art === 'gym' || z.ex.some(e => e.u && (HAUPT.test(e.u.toLowerCase()) || uebTyp(e.u)));
   function zeitOek(z) {
-    const ue = z.ex.map(e => e.note ? { note: e.note } : { u: e.u, e: e, typ: uebTyp(e.u || ''), saetze: wiederh(e.w, e.s).map((w, j) => ({ nr: j + 1, w: w })) });
+    const ue = z.ex.map(e => e.note ? { note: e.note, idx: e.idx } : { u: e.u, e: e, typ: uebTyp(e.u || ''), saetze: wiederh(e.w, e.s).map((w, j) => ({ nr: j + 1, w: w })) });
     let grenze = -1;
     ue.forEach((x, i) => { if (x.u && HAUPT.test(x.u.toLowerCase())) grenze = i; });
     const rest = ue.filter((x, i) => i > grenze && x.u);
@@ -528,7 +533,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     dr.forEach((x, i) => { if (zug[i]) paar(x, zug[i]); });
     const out = [], fertig = new Set();
     ue.forEach(x => {
-      if (x.note) { out.push({ note: x.note }); return; }
+      if (x.note) { out.push({ note: x.note, idx: x.idx }); return; }
       if (fertig.has(x)) return;
       fertig.add(x);
       const p = partner.get(x);
@@ -540,13 +545,13 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     });
     return out;
   }
-  function zeitOekListe(z, t) {
+  function zeitOekListe(z, t, mf) {
     const f = heuteAktiv(t) ? finde(t.datum) : null;
     return '<ol class="ex zeit">' + zeitOek(z).map(o => {
-      if (o.note) return `<li class="note">${esc(o.note)}</li>`;
+      if (o.note) return `<li class="note">${esc(o.note)}</li>` + felderZeile(mf, o.idx);
       const e = o.x.e, kt = f && fuenfer(o.s.w) ? kraftTest(o.x.u, f.w) : null;
       const feld = kt && !S.gezeigt[kt.zelle] ? `<li class="feld">${heuteFeld(kt, o.x.u.trim() + ' · 5 WH')}</li>` : '';
-      return `<li class="satz${o.ss ? ' ss' : ''}${o.ende ? ' ende' : ''}"><span class="s">${o.s.nr}.</span><span class="n">${esc(o.x.u)}</span><span class="m">${o.s.w ? '<span>' + esc(o.s.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${o.ss ? '<span>Supersatz</span>' : e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span></li>${feld}`;
+      return `<li class="satz${o.ss ? ' ss' : ''}${o.ende ? ' ende' : ''}"><span class="s">${o.s.nr}.</span><span class="n">${esc(o.x.u)}</span><span class="m">${o.s.w ? '<span>' + esc(o.s.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${o.ss ? '<span>Supersatz</span>' : e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span></li>${feld}${o.s.nr === o.x.saetze.length ? felderZeile(mf, e.idx) : ''}`;
     }).join('') + '</ol>';
   }
 
@@ -554,13 +559,15 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   // Aufgaben ganz oben auf Heute: Voice-Nachricht (Fr–So) und Videoanalyse. Abhaken = Effekt und weg.
   function aufgabeKarte(art, ueber, titel, klein, knopf) {
     return `<div class="video" id="karte-${art}"><div class="vtxt"><span>${ueber}</span><b>${esc(titel)}</b>${klein ? `<small>${esc(klein)}</small>` : ''}</div>
-      <button class="vok" type="button" data-abhaken="${art}">${knopf}</button></div>`;
+      <button class="vok" type="button" data-abhaken="${esc(art)}">${knopf}</button></div>`;
   }
   function aufgabenKarten() {
     let html = '';
     if (S.d.rechte.voice && S.d.voice) html += aufgabeKarte('voice', 'Wochenrückblick', 'Kurze Voice-Nachricht an Hannes', 'Wie war deine Woche? Per WhatsApp, bis Sonntag.', '✓ Erledigt');
-    const v = S.d.video;
-    if (S.d.rechte.video && v) html += aufgabeKarte('video', 'Ausstehende Videoanalyse', v.aufgabe || 'Schick Hannes dein nächstes Video', v.seit ? 'Auftrag vom ' + kurzDatum(v.seit.slice(0, 10)) : '', '✓ Gesendet');
+    // jeder offene Video-Auftrag einzeln, ältester zuerst
+    if (S.d.rechte.video) (S.d.videos || []).forEach(v => {
+      html += aufgabeKarte('video-' + v.id, 'Ausstehende Videoanalyse', v.aufgabe || 'Schick Hannes dein nächstes Video', v.seit ? 'Auftrag vom ' + kurzDatum(v.seit.slice(0, 10)) : '', '✓ Abgeschickt');
+    });
     return html;
   }
   function konfetti(el) {
@@ -579,7 +586,9 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     }
   }
   function abhaken(art) {
-    const karte = $('#karte-' + art), knopf = karte && karte.querySelector('.vok'), v = S.d[art];
+    const karte = document.getElementById('karte-' + art), knopf = karte && karte.querySelector('.vok');
+    if (art.indexOf('video-') === 0) return videoAbhaken(art.slice(6), karte, knopf);
+    const v = S.d[art];
     if (!karte || !v || karte.classList.contains('ok')) return;
     karte.classList.add('ok'); knopf.textContent = '✓ Danke!';
     konfetti(knopf);
@@ -588,6 +597,21 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     api(art === 'video' ? 'videoGesendet' : 'voiceGesendet', S.k, v.id)
       .then(r => { if (art === 'video' && r && r.naechstes) { S.d.video = r.naechstes; if (S.tab === 'heute') render(); } })
       .catch(err => { S.d[art] = v; if (S.tab === 'heute') render(); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
+  }
+  function videoAbhaken(id, karte, knopf) {
+    const v = (S.d.videos || []).find(x => String(x.id) === id);
+    if (!karte || !v || karte.classList.contains('ok')) return;
+    karte.classList.add('ok'); knopf.textContent = '✓ Danke!';
+    konfetti(knopf);
+    setTimeout(() => karte.classList.add('weg'), 700);
+    setTimeout(() => { S.d.videos = S.d.videos.filter(x => x !== v); if (S.tab === 'heute') render(); }, 1200);
+    api('videoGesendet', S.k, v.id)
+      .then(r => {
+        if (r && Array.isArray(r.offen)) S.d.videos = r.offen.filter(x => String(x.id) !== id);
+        else if (r && r.naechstes && !S.d.videos.some(x => x.id === r.naechstes.id)) S.d.videos.push(r.naechstes);   // älteres Skript
+        if (S.tab === 'heute') render();
+      })
+      .catch(err => { if (!S.d.videos.includes(v)) S.d.videos.unshift(v); if (S.tab === 'heute') render(); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
   }
   function viewHeute() {
     const heute = S.d.heute, f = finde(heute), m = finde(plusTage(heute, 1));
@@ -1105,6 +1129,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   function los(d) {
     if (echt) installHinweis();
     S.d = d;
+    if (!d.videos) d.videos = d.video ? [d.video] : [];   // älteres Skript liefert nur den ältesten Auftrag
     S.wocheW = d.wochen[0] ? d.wochen[0].name : '';
     S.wocheZ = d.wochen[1] ? d.wochen[1].name : S.wocheW;
     $('#hallo').textContent = 'Hallo ' + d.athlet;
