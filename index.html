@@ -323,7 +323,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   // Training erledigt? Nur die Auswahl, die Auswertung in % sieht nur Hannes.
   const ERLEDIGT = [['voll', '✓ Voll'], ['reduziert', '½ Reduziert'], ['ausgefallen', '✕ Ausgefallen']];
   const WUNSCH = ['Gym', 'Plyos', 'Sprints', 'Grundlage/Ausdauer', 'BMX-Track', 'Regeneration', 'Dehnen/Mobility', 'Kurztraining (wenig Zeit)'];
-  const TERMIN_ARTEN = ['Rennen', 'Trainingslager', 'Camp', 'Sonstiges'];
+  const TERMIN_ARTEN = ['Rennen', 'Camp', 'Sonstiges'];
   const TERMIN_WICHTIG = ['Saison-Highlight', 'Sehr wichtig', 'Mäßig'], TERMIN_INTENSITAET = ['hoch', 'mittel', 'gering'];
   const mitWichtig = art => art === 'Rennen' || art === 'Sonstiges', mitIntensitaet = art => !!art && art !== 'Rennen';
   const terminStufen = t => [mitWichtig(t.art) && t.wichtig, mitIntensitaet(t.art) && t.intensitaet && 'Intensität ' + t.intensitaet].filter(Boolean).join(' · ');
@@ -826,7 +826,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   function viewTermine() {
     let html = '<h2>Meine Termine</h2>';
     if (!S.d.rechte.termine) return html + '<div class="card"><div class="empty">Termine eintragen ist für dich gerade nicht freigeschaltet.</div></div>';
-    html += '<div class="card"><div class="muted">Trag deine Rennen, Trainingslager, Camps und sonstigen Termine ein. So kann Hannes dein Training darauf abstimmen.</div><button class="btn" type="button" id="neuTermin">+ Termin eintragen</button></div>';
+    html += '<div class="card"><div class="muted">Trag deine Rennen, Camps und sonstigen Termine ein. So kann Hannes dein Training darauf abstimmen.</div><button class="btn" type="button" id="neuTermin">+ Termin eintragen</button></div>';
     const alle = (S.d.termine || []).slice().sort((x, y) => x.von < y.von ? -1 : x.von > y.von ? 1 : 0);
     const kommend = alle.filter(t => (t.bis || t.von) >= S.d.heute), vorbei = alle.filter(t => (t.bis || t.von) < S.d.heute).reverse().slice(0, 5);
     if (!kommend.length) html += '<div class="card"><div class="empty">Noch keine kommenden Termine.</div></div>';
@@ -870,7 +870,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       if (it) { lesen(); t.intensitaet = t.intensitaet === it.dataset.tint ? '' : it.dataset.tint; return terminEditor(t); }
       if (e.target.id === 'tok') {
         lesen();
-        if (!t.art) return toast('Bitte wählen: Rennen, Trainingslager, Camp oder Sonstiges.');
+        if (!t.art) return toast('Bitte wählen: Rennen, Camp oder Sonstiges.');
         if (!mitWichtig(t.art)) t.wichtig = '';
         if (!mitIntensitaet(t.art)) t.intensitaet = '';
         if (!t.name) return toast('Bitte einen Namen eintragen.');
