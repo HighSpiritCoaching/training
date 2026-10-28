@@ -210,6 +210,16 @@ a.link { color: var(--accent); font-weight: 600; }
 .cdot.end { fill: var(--accent); }
 .cl { font: 700 13px var(--f-num); fill: var(--ink); }
 .cx { font: 500 12px var(--f-num); fill: var(--muted); }
+/* Verlauf baut sich beim Öffnen von links nach rechts auf */
+.chart svg.auf .cline { stroke-dasharray: 1; stroke-dashoffset: 1; animation: zeichnen .9s cubic-bezier(.4,0,.2,1) forwards; }
+.chart svg.auf .ca, .chart svg.auf .cl { opacity: 0; animation: einblenden .4s ease .75s forwards; }
+.chart svg.auf .cdot { opacity: 0; transform-box: fill-box; transform-origin: center; animation: punkt .3s ease forwards; animation-delay: calc(var(--i) * .9s); }
+@keyframes zeichnen { to { stroke-dashoffset: 0; } }
+@keyframes einblenden { to { opacity: 1; } }
+.chart svg.auf .ca { animation-name: flaeche; }
+@keyframes flaeche { to { opacity: .18; } }
+@keyframes punkt { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .chart svg.auf * { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; } }
 
 /* Befinden */
 .field { display: grid; gap: 6px; }
@@ -300,57 +310,57 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   --t-gym: rgba(46,230,166,.06); --s-gym: #2ee6a6; --t-plyo: rgba(166,107,255,.07); --s-plyo: #a66bff;
   --t-sprint: rgba(255,210,63,.06); --s-sprint: #ffd23f; --t-track: rgba(63,208,255,.07); --s-track: #3fd0ff;
   --t-none: rgba(120,140,255,.05); --s-none: #8d94b8; --logo-filter: invert(.92); --logo-blend: screen; color-scheme: dark;
-  --glow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
+  --glow: 0 0 8px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 html, body { background: radial-gradient(120% 60% at 50% -10%, #1b2556 0%, transparent 60%), linear-gradient(180deg, #0b0f1e, #121833), radial-gradient(80% 50% at 100% 100%, rgba(255,138,61,.08), transparent 70%), var(--bg) fixed; }
 .top { background: rgba(8,11,19,.72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
-.mark { box-shadow: 0 0 16px rgba(63,208,255,.35); }
-h2 { color: var(--accent); text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
+.mark { box-shadow: 0 0 8px rgba(63,208,255,.22); }
+h2 { color: var(--accent); }
 .card, .day, .termin { background: linear-gradient(180deg, var(--surface2), var(--surface)); border-color: var(--line); box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.35); }
-.unit { border: 1px solid color-mix(in srgb, var(--stripe) 22%, transparent); box-shadow: inset 0 0 24px color-mix(in srgb, var(--stripe) 7%, transparent); }
-.unit::before { box-shadow: 0 0 10px var(--stripe), 0 0 22px color-mix(in srgb, var(--stripe) 60%, transparent); }
-.unit-h h4 { text-shadow: 0 0 14px color-mix(in srgb, var(--stripe) 35%, transparent); }
+.unit { border: 1px solid color-mix(in srgb, var(--stripe) 22%, transparent); box-shadow: inset 0 0 24px color-mix(in srgb, var(--stripe) 4%, transparent); }
+.unit::before { box-shadow: 0 0 6px color-mix(in srgb, var(--stripe) 45%, transparent); }
+.unit-h h4 { }
 .half { background: color-mix(in srgb, var(--stripe) 16%, transparent); color: var(--stripe); border: 1px solid color-mix(in srgb, var(--stripe) 45%, transparent); }
-.slot i { box-shadow: 0 0 8px currentColor; }
+.slot i { box-shadow: 0 0 5px color-mix(in srgb, currentColor 50%, transparent); }
 .slot i.gym { color: var(--s-gym); } .slot i.plyo { color: var(--s-plyo); } .slot i.sprint { color: var(--s-sprint); } .slot i.track { color: var(--s-track); }
-.day.today, .termin.hl { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--glow), inset 0 0 22px rgba(63,208,255,.08); }
+.day.today, .termin.hl { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), var(--glow), inset 0 0 8px rgba(63,208,255,.08); }
 .chip { background: var(--surface); border-color: var(--line); }
 .chip[aria-pressed="true"], .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: var(--glow); }
 .btn { box-shadow: var(--glow); }
 .btn.sec { background: var(--surface); box-shadow: none; }
 .btn:active, .vok:active, .play:active { transform: scale(.97); }
-.play { box-shadow: 0 0 12px rgba(63,208,255,.7), 0 0 26px rgba(63,208,255,.35); }
+.play { box-shadow: 0 0 8px rgba(63,208,255,.3); }
 .zoek[aria-pressed="true"] { box-shadow: var(--glow); }
 .inp input, .mine-in { color: #ffe6a6; }
-.inp input:focus, .mine-in:focus { outline: none; border-color: #ffd23f; box-shadow: 0 0 0 1px #ffd23f, 0 0 16px rgba(255,210,63,.35); }
+.inp input:focus, .mine-in:focus { outline: none; border-color: #ffd23f; box-shadow: 0 0 0 1px #ffd23f, 0 0 8px rgba(255,210,63,.22); }
 .cell { background: rgba(255,255,255,.02); }
-.cell.filled { box-shadow: inset 0 0 14px rgba(255,210,63,.08); }
-.cell.hs { background: rgba(63,208,255,.1); box-shadow: 0 0 12px rgba(63,208,255,.25); }
-.cell .p { text-shadow: 0 0 8px rgba(46,230,166,.6); }
-.ex li.ab .s::before { color: var(--ok); text-shadow: 0 0 8px var(--ok); }
+.cell.filled { box-shadow: inset 0 0 8px rgba(255,210,63,.08); }
+.cell.hs { background: rgba(63,208,255,.1); box-shadow: 0 0 8px rgba(63,208,255,.22); }
+.cell .p { }
+.ex li.ab .s::before { color: var(--ok); }
 .done { background: rgba(255,255,255,.02); }
-.done button.voll[aria-pressed="true"] { color: #03140a; box-shadow: 0 0 16px rgba(46,230,166,.55); }
+.done button.voll[aria-pressed="true"] { color: #03140a; box-shadow: 0 0 8px rgba(46,230,166,.22); }
 .done button.reduziert[aria-pressed="true"] { color: #ffe6a6; box-shadow: inset 0 0 0 1px var(--mine-line); }
-.done button.ausgefallen[aria-pressed="true"] { box-shadow: 0 0 16px rgba(255,77,109,.55); }
-.video { background: linear-gradient(135deg, rgba(255,138,61,.16), rgba(255,77,109,.08) 60%, var(--surface)); border: 1px solid rgba(255,138,61,.45); box-shadow: 0 0 22px rgba(255,138,61,.22), inset 0 0 20px rgba(255,138,61,.06); }
-.video .vtxt span { color: var(--neon); opacity: 1; text-shadow: 0 0 10px rgba(255,138,61,.6); }
-.vok { background: var(--neon); color: #1a0b02; box-shadow: 0 0 16px rgba(255,138,61,.6); }
-.video.ok .vok { color: #03140a; box-shadow: 0 0 16px rgba(46,230,166,.6); }
-.tcount { text-shadow: 0 0 10px rgba(63,208,255,.6); }
-.sick { border: 1px solid rgba(255,77,109,.45); box-shadow: 0 0 16px rgba(255,77,109,.2); }
-.switch input:checked { box-shadow: 0 0 12px var(--bad); }
-.cline { filter: drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 10px rgba(63,208,255,.5)); }
-.cdot.end { filter: drop-shadow(0 0 6px var(--accent)); }
+.done button.ausgefallen[aria-pressed="true"] { box-shadow: 0 0 8px rgba(255,77,109,.22); }
+.video { background: linear-gradient(135deg, rgba(255,138,61,.12), rgba(255,77,109,.05) 60%, var(--surface)); border: 1px solid rgba(255,138,61,.35); box-shadow: 0 0 8px rgba(255,138,61,.22), inset 0 0 8px rgba(255,138,61,.06); }
+.video .vtxt span { color: var(--neon); opacity: 1; }
+.vok { background: var(--neon); color: #1a0b02; box-shadow: 0 0 8px rgba(255,138,61,.25); }
+.video.ok .vok { color: #03140a; box-shadow: 0 0 8px rgba(46,230,166,.25); }
+.tcount { }
+.sick { border: 1px solid rgba(255,77,109,.45); box-shadow: 0 0 8px rgba(255,77,109,.2); }
+.switch input:checked { box-shadow: 0 0 8px color-mix(in srgb, var(--bad) 30%, transparent); }
+.cline { filter: drop-shadow(0 0 3px rgba(63,208,255,.33)); }
+.cdot.end { filter: drop-shadow(0 0 3px rgba(63,208,255,.33)); }
 .ca { opacity: .18; }
-.delta.up { text-shadow: 0 0 10px rgba(46,230,166,.5); } .delta.down { text-shadow: 0 0 10px rgba(255,77,109,.5); }
+.delta.up { } .delta.down { }
 .tabs { background: rgba(10,14,24,.82); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top-color: var(--line); }
-.tabs button[aria-current="page"] { color: var(--accent); text-shadow: 0 0 10px rgba(63,208,255,.7); }
-.tabs button[aria-current="page"] svg { filter: drop-shadow(0 0 6px rgba(63,208,255,.8)); }
-.sheet { background: linear-gradient(180deg, #182036, var(--surface)); border-top: 1px solid rgba(63,208,255,.35); box-shadow: 0 -10px 40px rgba(63,208,255,.15); }
+.tabs button[aria-current="page"] { color: var(--accent); }
+.tabs button[aria-current="page"] svg { filter: drop-shadow(0 0 4px rgba(63,208,255,.35)); }
+.sheet { background: linear-gradient(180deg, #182036, var(--surface)); border-top: 1px solid rgba(63,208,255,.35); box-shadow: 0 -10px 30px rgba(0,0,0,.4); }
 .scrim { background: rgba(3,5,10,.6); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .opts button, .wahl button { background: rgba(255,255,255,.03); }
-.wahl button[aria-pressed="true"], .sheet .feel button[aria-pressed="true"], .feel button[aria-pressed="true"] { color: #ffe6a6; box-shadow: 0 0 14px rgba(255,210,63,.25); }
-.raeder .fenster { box-shadow: 0 0 16px rgba(255,210,63,.25); }
+.wahl button[aria-pressed="true"], .sheet .feel button[aria-pressed="true"], .feel button[aria-pressed="true"] { color: #ffe6a6; box-shadow: 0 0 8px rgba(255,210,63,.22); }
+.raeder .fenster { box-shadow: 0 0 8px rgba(255,210,63,.22); }
 .toast { background: var(--surface2); color: var(--ink); border: 1px solid rgba(63,208,255,.45); box-shadow: var(--glow); }
 .status { background: rgba(63,208,255,.12); color: var(--accent); }
 </style>
@@ -1011,7 +1021,7 @@ h2 { color: var(--accent); text-shadow: 0 0 12px color-mix(in srgb, var(--accent
     const f = finde(S.d.heute);
     if (!f) return '<div class="card"><div class="empty">Keine Woche gefunden.</div></div>';
     const w = f.w;
-    if (S.verlauf === undefined) { S.verlauf = null; api('verlauf', S.k).then(v => { S.verlauf = v || {}; if (S.tab === 'werte') render(); }).catch(() => { S.verlauf = {}; }); }
+    if (S.verlauf === undefined) { S.verlauf = null; api('verlauf', S.k).then(v => { S.verlauf = v || {}; if (S.chartOffen) chartAnimieren(S.chartOffen); if (S.tab === 'werte') render(); }).catch(() => { S.verlauf = {}; }); }
     let html = `<h2>Meine Werte</h2><div class="card"><div class="muted">Woche ab ${esc(w.name)}. Deine Werte trägst du direkt unter <b>Heute</b> im Trainingsplan ein, sobald sie dran sind. Hier trägst du nur noch das <b>Wattbike</b> ein. Tipp auf <b>Verlauf</b>, um zu sehen, wie du dich entwickelst.</div></div>`;
     if (!w.tests.length) return html + '<div class="card"><div class="empty">Hannes hat dir noch keine Werte zum Eintragen freigegeben.</div></div>';
     const gruppen = [];
@@ -1039,6 +1049,8 @@ h2 { color: var(--accent); text-shadow: 0 0 12px color-mix(in srgb, var(--accent
   }
 
   /** Verlauf eines einzelnen Werts: nur Linie, Start und jetzt. Umschalter Messwert / Prozent. */
+  // Animation nur direkt nach dem Öffnen / Umschalten, nicht bei jedem neuen Zeichnen
+  function chartAnimieren(k) { S.chartAnim = k; clearTimeout(S.chartT); S.chartT = setTimeout(() => { S.chartAnim = ''; }, 1500); }
   function chartBox(t, k) {
     if (S.verlauf === null) return '<div class="muted">Lade Verlauf …</div>';
     const pts = ((S.verlauf || {})[k] || []).map(x => ({ w: x.woche, v: zahl(x.wert), roh: x.wert })).filter(x => x.v !== null);
@@ -1064,10 +1076,10 @@ h2 { color: var(--accent); text-shadow: 0 0 12px color-mix(in srgb, var(--accent
     const neutral = /maximalpuls/i.test(t.name);   // höher ist hier nicht automatisch besser
     return `<div class="chart-h"><span class="delta ${gleich || neutral ? '' : besser ? 'up' : 'down'}">${gleich ? 'gleich wie am Anfang' : diffText + ' seit ' + esc(pts[0].w) + '.'}</span>
       <div class="seg" role="group" aria-label="Anzeige"><button type="button" data-modus="${esc(k)}|wert" aria-pressed="${modus === 'wert'}">${esc(e)}</button><button type="button" data-modus="${esc(k)}|prozent" aria-pressed="${modus === 'prozent'}">%</button></div></div>
-      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Verlauf ${esc(testName(t.name))}">
+      <svg viewBox="0 0 ${W} ${H}"${S.chartAnim === k ? ' class="auf"' : ''} role="img" aria-label="Verlauf ${esc(testName(t.name))}">
         ${modus === 'prozent' ? `<line x1="${L}" x2="${W - R}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" class="c0"/>` : ''}
-        <path d="${flaeche}" class="ca"/><path d="${linie}" class="cline"/>
-        ${ys.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${i === ys.length - 1 ? 5 : 3}" class="${i === ys.length - 1 ? 'cdot end' : 'cdot'}"/>`).join('')}
+        <path d="${flaeche}" class="ca"/><path d="${linie}" class="cline" pathLength="1"/>
+        ${ys.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${i === ys.length - 1 ? 5 : 3}" class="${i === ys.length - 1 ? 'cdot end' : 'cdot'}" style="--i:${(i / (ys.length - 1)).toFixed(3)}"/>`).join('')}
         ${lab(0, wertLab(0), 'start')}${lab(ys.length - 1, wertLab(ys.length - 1), 'end')}
         <text x="${L}" y="${H - 5}" class="cx">${esc(pts[0].w)}.</text><text x="${W - R}" y="${H - 5}" text-anchor="end" class="cx">${esc(lastP.w)}.</text>
       </svg>`;
@@ -1122,8 +1134,8 @@ h2 { color: var(--accent); text-shadow: 0 0 12px color-mix(in srgb, var(--accent
     const wz = e.target.closest('[data-wz]'); if (wz) { S.wocheZ = wz.dataset.wz; render(); return; }
     const day = e.target.closest('[data-day]'); if (day) { S.offen[day.dataset.day] = !S.offen[day.dataset.day]; render(); return; }
     const slot = e.target.closest('[data-slot]'); if (slot) { const [i, h] = slot.dataset.slot.split('|'); slotEditor(Number(i), h); return; }
-    const ch = e.target.closest('[data-chart]'); if (ch) { S.chartOffen = S.chartOffen === ch.dataset.chart ? '' : ch.dataset.chart; render(); return; }
-    const mo = e.target.closest('[data-modus]'); if (mo) { const d = mo.dataset.modus, i = d.lastIndexOf('|'), k = d.slice(0, i), m = d.slice(i + 1); S.modus[k] = m; render(); return; }
+    const ch = e.target.closest('[data-chart]'); if (ch) { S.chartOffen = S.chartOffen === ch.dataset.chart ? '' : ch.dataset.chart; chartAnimieren(S.chartOffen); render(); return; }
+    const mo = e.target.closest('[data-modus]'); if (mo) { const d = mo.dataset.modus, i = d.lastIndexOf('|'), k = d.slice(0, i), m = d.slice(i + 1); S.modus[k] = m; chartAnimieren(k); render(); return; }
     const ok = e.target.closest('[data-ok]');
     if (ok) { const z = ok.dataset.ok, f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === z), p = S.pruef[z]; delete S.pruef[z];
       testSpeichern(f, t, p.neu, 'vorher ' + p.ref + ', Athlet hat bestätigt'); return; }
