@@ -155,6 +155,18 @@ a.link { color: var(--accent); font-weight: 600; }
 .group { display: grid; gap: 0; }
 .val { display: grid; grid-template-columns: 1fr 110px; gap: 4px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .card-h + .val { border-top: 0; }
+.messen { display: grid; background: var(--surface); border-radius: 10px; padding: 6px 10px 4px; }
+.messen > b { font: 700 12px/1.4 var(--f-num); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.messen .val:first-of-type, .card > .val.mess:first-child { border-top: 0; }
+.ex li.feld { grid-template-columns: 1fr; padding: 0 0 4px; border-top: 0; }
+.ex li.feld .val { background: var(--surface); border-radius: 10px; padding: 8px 10px; border-top: 0; }
+.ex.zeit li.ss { border-left: 3px solid var(--stripe); padding-left: 6px; }
+.ex.zeit li.ende { margin-bottom: 8px; }
+.zoek { justify-self: start; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: 600 14px/1 var(--f-num); }
+.zoek[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.inp .ro { width: 100%; text-align: right; font: 700 19px/1 var(--f-num); padding: 10px 2px; font-variant-numeric: tabular-nums; }
+.switch + .switch { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.switch input.warn:checked { background: #e0a100; }
 .folge { grid-column: 1 / -1; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13px; color: var(--muted); }
 .std { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; text-align: left; width: 100%; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: inherit; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .std small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
@@ -316,7 +328,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   // Adresse des Google-Skripts (Bereitstellen → Web-App-URL). Bleibt gleich, solange nur "Neue Version" bereitgestellt wird.
   const APP_URL = 'https://script.google.com/macros/s/AKfycbwybzfE0TMqvge98_Q3PMF_ZnP4q3zyIKHXGNYH52ovo4w_5kGLe1qTj-b9zXq1XLtp/exec';
   const echt = !window.DEMO;
-  const S = { hinweise: {}, pruef: {}, modus: {}, chartOffen: '', k: '', d: null, tab: 'heute', wocheW: '', wocheZ: '', offen: {}, wartet: {}, timer: null, geaendert: {} };
+  const S = { hinweise: {}, pruef: {}, modus: {}, chartOffen: '', k: '', d: null, tab: 'heute', wocheW: '', wocheZ: '', offen: {}, wartet: {}, timer: null, geaendert: {}, meta: {}, gezeigt: {}, zoek: {} };
   const $ = (sel, el) => (el || document).querySelector(sel);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -330,6 +342,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       else if (fn === 'termin') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], termin: args[1] }) });
       else if (fn === 'terminLoeschen') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], id: args[1] }) });
       else if (fn === 'bedingung') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], woche: args[1], bereich: args[2], name: args[3], erfuellt: args[4] }) });
+      else if (fn === 'flach') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], datum: args[1], bereich: args[2], name: args[3], flach: args[4] }) });
+      else if (fn === 'befinden') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], datum: args[1], status: args[2], an: args[3] }) });
       else if (fn === 'voiceGesendet') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0] }) });
       else if (fn === 'videoGesendet') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], id: args[1] }) });
       else if (fn === 'erledigt') anfrage = fetch(APP_URL, { method: 'POST', body: JSON.stringify({ a: fn, k: args[0], datum: args[1], halbtag: args[2], titel: args[3], status: args[4] }) });
@@ -388,14 +402,15 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   }
   const hatPlan = h => h && h.zeilen && h.zeilen.length > 0;
   function einheit(h, halb, mitZeit, t) {
-    const z = zerlege(h);
-    const ex = z.ex.map(e => e.note
+    const z = zerlege(h), gym = t && istGym(z), zk = t ? t.datum + '|' + halb : '', oek = gym && S.zoek[zk];
+    const ex = oek ? '' : z.ex.map(e => e.note
       ? `<li class="note">${esc(e.note)}</li>`
       : `<li><span class="s">${e.s ? esc(e.s) + '×' : ''}</span><span class="n">${esc(e.u)}</span>${(e.w || e.p || e.pa) ? `<span class="m">${e.w ? '<span>' + esc(e.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span>` : ''}</li>`).join('');
     return `<article class="unit ${z.art}">
       <div class="unit-h"><span class="half">${halb}</span><h4>${esc(z.titel)}</h4>${z.saetze ? `<span class="sets">${esc(z.saetze)} Sätze</span>` : ''}</div>
       ${mitZeit && h.zeit ? `<div class="mytime">Deine Angabe: ${esc(wahlKurz(h.zeit))}</div>` : ''}
-      <ol class="ex">${ex}</ol>${t ? erledigtZeile(t, halb, z.titel) : ''}</article>`;
+      ${gym ? `<button type="button" class="zoek" data-zoek="${esc(zk)}" aria-pressed="${!!oek}">⏱ Zeitökonomisch${oek ? ' · an' : ''}</button>` : ''}
+      ${oek ? zeitOekListe(z, t) : `<ol class="ex">${ex}</ol>`}${heuteAktiv(t) ? einheitFelder(h, t) : ''}${t ? erledigtZeile(t, halb, z.titel) : ''}</article>`;
   }
   function erledigtZeile(t, halb, titel) {
     if (!S.d.rechte.erledigt || !t.datum || t.datum > S.d.heute || t.datum < plusTage(S.d.heute, -14)) return '';
@@ -409,6 +424,130 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (hatPlan(t.nm)) html += einheit(t.nm, 'NM', mitZeit, t);
     if (t.notiz) html += `<div class="hint"><b>Hinweis von Hannes</b>${esc(t.notiz)}</div>`;
     return html;
+  }
+
+
+  // ---------- Messwerte im Tagesplan ----------
+  // Je nach Inhalt einer Einheit erscheint das passende Feld (Regeln von Hannes). Gespeichert wird mit Datum.
+  const KRAFT = [[/einbein/, /^einbeinige kniebeuge/], [/kniebeuge|back\s*squat/, /^kniebeuge/], [/beinpresse/, /^beinpresse/], [/kreuzheben/, /^kreuzheben/],
+    [/umsetzen/, /^umsetzen/], [/rudern.*(vorgebeugt|lh|langhantel)|vorgebeugt.*rudern/, /^rudern vorgebeugt/], [/bankdr/, /^bankdr/]];
+  const PLAN_REGELN = [
+    [/flat\s*-?\s*sprint/, 'Flat Sprint', [/^sprint 20/, /^wattkurbel/, /^trittfrequenz sprint/]],
+    [/downhill/, 'Downhill Sprint', [/^trittfrequenz sprint/]],
+    [/\bgates?\b/, 'Gates', [/^gate/, /^trittfrequenz bmx/]],
+    [/first\s*straight|erste\s*gerade|1\.\s*(\+\s*2\.\s*)?gerade/, 'Erste Gerade', [/^first straight/, /^trittfrequenz bmx/]],
+    [/half\s*-?\s*laps?/, 'Half Lap', [/^half\s*-?\s*lap/, /^trittfrequenz bmx/]],
+    [/full\s*-?\s*laps?/, 'Full Lap', [/^full\s*-?\s*l?lap/, /^maximalpuls/, /^trittfrequenz bmx/]],
+    [/bmx[\s-]*(bahn|track)/, 'BMX-Bahn', [/^trittfrequenz bmx/]],
+    [/shuttle/, 'Shuttle Run', [/^vo2max/, /^maximalpuls/]],
+    [/long\s*-?\s*jumps?|weitsprung/, 'Long Jump', [/^long jump/]],
+    [/box\s*-?\s*jumps?/, 'Box Jump', [/^box jump/]],
+    [/manual|manuel/, 'Manual', [/^manual/]],
+    [/bunny\s*-?\s*hop/, 'Bunny Hop', [/^bunny hop/]]
+  ];
+  // "10/5/9" bei 3 Sätzen → ['10', '5', '9']; "8" bei 4 Sätzen → 4 × '8'
+  const wiederh = (w, s) => { const teile = String(w || '').split('/').map(x => x.trim()).filter(Boolean); const n = Math.max(Number(s) || 0, teile.length, 1); return Array.from({ length: n }, (_, i) => teile.length ? teile[Math.min(i, teile.length - 1)] : ''); };
+  const fuenfer = r => /^5(\s*wh)?$/i.test(String(r).trim());
+  function kraftTest(u, w) {
+    const x = String(u || '').toLowerCase();
+    for (const [re, ziel] of KRAFT) if (re.test(x)) return w.tests.find(t => ziel.test(t.name.toLowerCase())) || null;
+    return null;
+  }
+  function messFelder(h, w) {
+    const out = [], add = (t, a) => { if (t && !out.some(x => x.t === t)) out.push({ t: t, anlass: a }); };
+    const such = re => w.tests.find(t => re.test(t.name.toLowerCase()));
+    h.zeilen.forEach(([s, u, wh]) => { const t = u && kraftTest(u, w); if (t && wiederh(wh, s).some(fuenfer)) add(t, u.trim() + ' · 5 WH'); });
+    const zeilen = h.zeilen.map(z => z.join(' ').toLowerCase()), alles = zeilen.join(' \n ');
+    PLAN_REGELN.forEach(([re, a, ziele]) => { if (re.test(alles)) ziele.forEach(r => add(such(r), a)); });
+    zeilen.forEach(l => {
+      const km = (l.match(/(\d+(?:[.,]\d+)?)\s*km/) || [])[1], m = (l.match(/(\d{3,5})\s*m\b/) || [])[1];
+      const k = km ? Number(km.replace(',', '.')) : m ? Number(m) / 1000 : null;
+      if (/lauf\b|laufen\b|jogg/.test(l) && !/steigerung|anlauf|ablauf|verlauf|auslauf|shuttle/.test(l) && (k === null || k <= 10)) add(such(/^laufen/), 'Lauf' + (k ? ' ' + String(k).replace('.', ',') + ' km' : ''));
+      if (/schwimm/.test(l) && (k === null || k >= 1)) add(such(/^schwimmen/), 'Schwimmen' + (k ? ' ' + String(k).replace('.', ',') + ' km' : ''));
+      if (/rennrad|road\s*bike/.test(l) && (k === null || k <= 40)) add(such(/^rennrad/), 'Rennrad' + (k ? ' ' + String(k).replace('.', ',') + ' km' : ''));
+    });
+    if (/ergo/.test(alles) && /ga\s*2/.test(alles)) add(such(/^ergometer/), 'Ergometer GA2');
+    return out;
+  }
+  // Morgens: Gewicht Mo/Mi/Sa, Größe am Monatsersten, Ruhepuls (erste 2 Wochen jeden 2. Tag, bei krank / nicht gut)
+  function morgenFelder(f) {
+    const heute = S.d.heute, d = isoDate(heute), liste = [];
+    const such = re => f.w.tests.find(t => re.test(t.name.toLowerCase()));
+    if ([1, 3, 6].includes(d.getDay())) liste.push([such(/^körpergewicht/), 'Morgens nüchtern, nach dem Toilettengang']);
+    if (d.getDate() === 1) liste.push([such(/^körpergröße|^körpergrösse/), 'Einmal im Monat, am Monatsersten']);
+    const bef = S.d.befinden || {}, gestern = plusTage(heute, -1), gf = finde(gestern);
+    const diff = S.d.appStart ? Math.round((isoDate(heute) - isoDate(S.d.appStart)) / 86400000) : -1;
+    let rp = '';
+    if (f.t.krank || bef[heute]) rp = 'Morgens direkt nach dem Aufstehen messen. Vergessen? Dann morgen früh nachtragen.';
+    else if ((gf && gf.t.krank) || bef[gestern]) rp = 'Gestern ging es dir nicht gut: bitte heute früh messen.';
+    else if (diff >= 0 && diff < 14 && diff % 2 === 0) rp = 'Morgens direkt nach dem Aufstehen, noch im Liegen.';
+    if (rp) liste.push([such(/^ruhepuls/), rp]);
+    return liste.filter(x => x[0]);
+  }
+  function heuteFeld(t, anlass) {
+    const z = t.zelle, id = 'h_' + z, pace = /pace/i.test(t.name), k = schluessel(t), p = S.pruef[z];
+    const mw = (S.d.messwerte || {})[S.d.heute + '|' + k] || {}, wert = p ? p.neu : (mw.wert || '');
+    S.gezeigt[z] = true;
+    const last = t.zuletzt ? `Zuletzt: ${esc(t.zuletzt)} ${esc(einheitKurz(t.einheit))} (Woche ${esc(t.zuletztWoche)})` : '';
+    const rad = /rennrad/i.test(t.name), flach = mw.flach === 'ja';
+    return `<div class="val mess"><label for="${id}">${esc(testName(t.name))}${anlass ? `<small>${esc(anlass)}</small>` : ''}</label>
+      <div class="inp"><input id="${id}" data-heute="${esc(z)}" data-anlass="${esc(anlass || '')}" ${pace ? `data-pace="${esc(z)}" readonly` : 'inputmode="decimal"'} placeholder="${pace ? 'm:ss' : '–'}" value="${esc(wert)}" autocomplete="off"></div>
+      <div class="unit-l">${esc(t.einheit)}</div>
+      ${last ? `<div class="last"><span>${last}</span></div>` : ''}
+      ${t.bedingung !== undefined ? `<button type="button" class="std${t.bedingung ? ' on' : wert ? ' warn' : ''}" data-std="${esc(z)}" aria-pressed="${t.bedingung}"><span class="box">${t.bedingung ? '✓' : ''}</span><span>Standardbedingungen erfüllt<small>Kein starker Wind, trockene Strecke, gleicher Untergrund</small></span></button>` : ''}
+      ${rad ? `<button type="button" class="std${flach ? ' on' : wert ? ' warn' : ''}" data-flach="${esc(z)}" aria-pressed="${flach}"><span class="box">${flach ? '✓' : ''}</span><span>Strecke war flach<small>Die schnellsten 10 km in der Ebene</small></span></button>` : ''}
+      ${p ? `<div class="check" role="alert"><b>Stimmt das?</b> Letztes Mal ${esc(p.ref)}, jetzt ${esc(p.neu)} ${esc(einheitKurz(t.einheit))}. Das ist ein großer Sprung.
+        <div class="row-btns"><button class="btn" type="button" data-ok="${esc(z)}">Ja, stimmt</button><button class="btn sec" type="button" data-fix="${esc(z)}">Korrigieren</button></div></div>` : ''}</div>`;
+  }
+  function einheitFelder(h, t) {
+    const f = finde(t.datum);
+    if (!f || !f.w.tests) return '';
+    const liste = messFelder(h, f.w).filter(x => !S.gezeigt[x.t.zelle]);
+    return liste.length ? `<div class="messen"><b>Werte eintragen</b>${liste.map(x => heuteFeld(x.t, x.anlass)).join('')}</div>` : '';
+  }
+  const heuteAktiv = t => t && t.datum === S.d.heute && S.tab === 'heute';
+
+  // ---------- Zeitökonomisch: Sätze einzeln, Supersätze nach Hannes' Regeln ----------
+  // Bis zur letzten Kniebeuge / Beinpresse / Kreuzheben bleibt alles der Reihe nach.
+  // Danach: Unterkörper-Übung im Wechsel mit Oberkörper-Übung; übrige Drück- und Zugübungen im Wechsel.
+  const HAUPT = /kniebeuge|back\s*squat|beinpresse|kreuzheben/;
+  const UNTEN = /rückenstreck|beinbeuger|beinstreck|hip\s*thrust|hüft|wade|ausfallschritt|adduk|abduk|good\s*morning|step\s*-?\s*up|glute|kniebeuge|beinpresse|kreuzheben/;
+  const ZUG = /rudern|\blat\b|lat\s*zug|latzug|klimmz|reverse\s*butterfly|face\s*pull|bizeps|curl|nackenheb|shrug|pull/;
+  const DRUECK = /bankdr|schulterdr|liegestütz|dips|butterfly|brustpresse|trizeps|seitheben|frontheben|push/;
+  const uebTyp = u => { const x = u.toLowerCase(); return UNTEN.test(x) ? 'unten' : ZUG.test(x) ? 'zug' : DRUECK.test(x) ? 'drueck' : ''; };
+  const istGym = (z) => z.art === 'gym' || z.ex.some(e => e.u && (HAUPT.test(e.u.toLowerCase()) || uebTyp(e.u)));
+  function zeitOek(z) {
+    const ue = z.ex.map(e => e.note ? { note: e.note } : { u: e.u, e: e, typ: uebTyp(e.u || ''), saetze: wiederh(e.w, e.s).map((w, j) => ({ nr: j + 1, w: w })) });
+    let grenze = -1;
+    ue.forEach((x, i) => { if (x.u && HAUPT.test(x.u.toLowerCase())) grenze = i; });
+    const rest = ue.filter((x, i) => i > grenze && x.u);
+    const unten = rest.filter(x => x.typ === 'unten'), oben = rest.filter(x => x.typ === 'zug' || x.typ === 'drueck');
+    const partner = new Map(), paar = (a, b) => { partner.set(a, b); partner.set(b, a); };
+    unten.forEach((x, i) => { if (oben[i]) paar(x, oben[i]); });
+    const frei = oben.slice(unten.length), zug = frei.filter(x => x.typ === 'zug'), dr = frei.filter(x => x.typ === 'drueck');
+    dr.forEach((x, i) => { if (zug[i]) paar(x, zug[i]); });
+    const out = [], fertig = new Set();
+    ue.forEach(x => {
+      if (x.note) { out.push({ note: x.note }); return; }
+      if (fertig.has(x)) return;
+      fertig.add(x);
+      const p = partner.get(x);
+      if (!p) { x.saetze.forEach(s => out.push({ x: x, s: s })); return; }
+      fertig.add(p);
+      const n = Math.max(x.saetze.length, p.saetze.length);
+      for (let i = 0; i < n; i++) { if (x.saetze[i]) out.push({ x: x, s: x.saetze[i], ss: true }); if (p.saetze[i]) out.push({ x: p, s: p.saetze[i], ss: true }); }
+      out[out.length - 1].ende = true;
+    });
+    return out;
+  }
+  function zeitOekListe(z, t) {
+    const f = heuteAktiv(t) ? finde(t.datum) : null;
+    return '<ol class="ex zeit">' + zeitOek(z).map(o => {
+      if (o.note) return `<li class="note">${esc(o.note)}</li>`;
+      const e = o.x.e, kt = f && fuenfer(o.s.w) ? kraftTest(o.x.u, f.w) : null;
+      const feld = kt && !S.gezeigt[kt.zelle] ? `<li class="feld">${heuteFeld(kt, o.x.u.trim() + ' · 5 WH')}</li>` : '';
+      return `<li class="satz${o.ss ? ' ss' : ''}${o.ende ? ' ende' : ''}"><span class="s">${o.s.nr}.</span><span class="n">${esc(o.x.u)}</span><span class="m">${o.s.w ? '<span>' + esc(o.s.w) + ' WH</span>' : ''}${e.p ? '<span>' + esc(e.p) + '</span>' : ''}${o.ss ? '<span>Supersatz</span>' : e.pa ? '<span>Pause ' + esc(e.pa) + ' min</span>' : ''}</span></li>${feld}`;
+    }).join('') + '</ol>';
   }
 
   // ---------- Heute ----------
@@ -452,10 +591,13 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   }
   function viewHeute() {
     const heute = S.d.heute, f = finde(heute), m = finde(plusTage(heute, 1));
+    S.gezeigt = {};
     let html = aufgabenKarten();
     if (!f) return html + '<div class="card"><div class="empty">Für diese Woche gibt es noch keinen Plan.</div></div>';
     const t = f.t;
     if (t.krank) html += '<div class="sick">Du hast dich für heute krank gemeldet. Gute Besserung!</div>';
+    const mf = morgenFelder(f);
+    if (mf.length) html += `<h2>Heute früh</h2><div class="card">${mf.map(x => heuteFeld(x[0], x[1])).join('')}</div>`;
     html += `<h2>Heute</h2><div class="card"><div class="card-h"><h3>${esc(t.tag)}</h3><small>${kurzDatum(t.datum)}</small></div>`;
     const plan = tagPlan(t, true);
     html += plan || '<div class="empty">Heute steht kein Training im Plan.</div>';
@@ -466,7 +608,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       html += '</div>';
     }
     if (S.d.rechte.befinden) html += befindenKarte(f);
-    if (S.d.rechte.krank) html += `<div class="card"><label class="switch" for="krank"><span><b>Ich bin heute krank</b><br><span class="muted">Hannes sieht es sofort in deiner Tabelle.</span></span><input type="checkbox" id="krank" ${t.krank ? 'checked' : ''}></label></div>`;
+    if (S.d.rechte.krank) html += `<div class="card"><label class="switch" for="krank"><span><b>Ich bin heute krank</b><br><span class="muted">Hannes sieht es sofort. Trag oben bitte deinen Ruhepuls ein.</span></span><input type="checkbox" id="krank" ${t.krank ? 'checked' : ''}></label>
+      <label class="switch" for="nichtgut"><span><b>Ich fühle mich nicht gut</b><br><span class="muted">Dann oben den Ruhepuls von heute früh eintragen.</span></span><input type="checkbox" id="nichtgut" class="warn" ${(S.d.befinden || {})[heute] ? 'checked' : ''}></label></div>`;
     const v = S.d.daten[f.w.name].video;
     if (v && /^https?:\/\//.test(v)) html += `<div class="card"><div class="card-h"><h3>Video-Analyse</h3></div><a class="link" href="${esc(v)}" target="_blank" rel="noopener">Video von Hannes ansehen</a></div>`;
     html += `<img class="logo" src="logo.png" alt="High Spirit Strength and Conditioning, Hannes Slavik">`;
@@ -680,6 +823,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   const schluessel = t => normK(t.bereich) + '|' + normK(t.name);
   // Anzeigename in der App; im Sheet bleibt der Name unverändert (Freigaben, Dashboard)
   const testName = n => {
+    if (/^trittfrequenz bmx/i.test(String(n).trim())) return 'Trittfrequenz BMX-Bahn';
     const x = String(n).trim(), h = /hometrack|home-track/i.test(x) || /^gate/i.test(x);
     const kern = /^gate/i.test(x) ? 'Start (Gate)' : /first\s*straight/i.test(x) ? 'First Straight' : /half\s*-?\s*lap/i.test(x) ? 'Half-Lap' : /full\s*-?\s*lap/i.test(x) ? 'Full-Lap' : x;
     return h ? kern + ' · Home-Track' : kern;
@@ -695,7 +839,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (!f) return '<div class="card"><div class="empty">Keine Woche gefunden.</div></div>';
     const w = f.w;
     if (S.verlauf === undefined) { S.verlauf = null; api('verlauf', S.k).then(v => { S.verlauf = v || {}; if (S.tab === 'werte') render(); }).catch(() => { S.verlauf = {}; }); }
-    let html = `<h2>Meine Werte</h2><div class="card"><div class="muted">Woche ab ${esc(w.name)}. Einmal pro Woche testen und eintragen. Gespeichert wird automatisch, sobald du das Feld verlässt. Tipp auf <b>Verlauf</b>, um zu sehen, wie du dich entwickelst.</div></div>`;
+    let html = `<h2>Meine Werte</h2><div class="card"><div class="muted">Woche ab ${esc(w.name)}. Deine Werte trägst du direkt unter <b>Heute</b> im Trainingsplan ein, sobald sie dran sind. Hier trägst du nur noch das <b>Wattbike</b> ein. Tipp auf <b>Verlauf</b>, um zu sehen, wie du dich entwickelst.</div></div>`;
     if (!w.tests.length) return html + '<div class="card"><div class="empty">Hannes hat dir noch keine Werte zum Eintragen freigegeben.</div></div>';
     const gruppen = [];
     // Ruhe- und Maximalpuls stehen in der Tabelle bei den Körperdaten, in der App als eigene Gruppe ganz unten
@@ -706,13 +850,12 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       g.t.forEach(t => {
         const id = 'v_' + t.zelle, pace = /pace/i.test(t.name), k = schluessel(t), offen = S.chartOffen === k;
         const last = t.zuletzt ? `Zuletzt: ${esc(t.zuletzt)} ${esc(einheitKurz(t.einheit))} (Woche ${esc(t.zuletztWoche)})` : 'Noch kein früherer Wert';
-        const p = S.pruef[t.zelle];
+        const p = S.pruef[t.zelle], frei = /wattbike/i.test(t.bereich);
         html += `<div class="val"><label for="${id}">${esc(testName(t.name))}${t.info ? `<small>${esc(t.info)}</small>` : ''}</label>
-          <div class="inp"><input id="${id}" data-test="${esc(t.zelle)}" ${pace ? `data-pace="${esc(t.zelle)}" readonly` : 'inputmode="decimal"'} placeholder="${pace ? 'm:ss' : '–'}" value="${esc(p ? p.neu : t.wert)}" autocomplete="off"></div>
+          <div class="inp">${frei ? `<input id="${id}" data-test="${esc(t.zelle)}" inputmode="decimal" placeholder="–" value="${esc(p ? p.neu : t.wert)}" autocomplete="off">` : `<span class="ro">${esc(t.wert) || '–'}</span>`}</div>
           <div class="unit-l">${esc(t.einheit)}</div>
           <div class="last"><span>${last}</span><button type="button" class="vbtn" data-chart="${esc(k)}" aria-expanded="${offen}">${offen ? 'Verlauf zu' : 'Verlauf'}</button></div>
-          ${t.bedingung !== undefined ? `<button type="button" class="std${t.bedingung ? ' on' : t.wert ? ' warn' : ''}" data-std="${esc(t.zelle)}" aria-pressed="${t.bedingung}"><span class="box">${t.bedingung ? '✓' : ''}</span><span>Standardbedingungen erfüllt<small>Kein starker Wind, trockene Strecke, gleicher Untergrund</small></span></button>` : ''}
-          ${p ? `<div class="check" role="alert"><b>Stimmt das?</b> Letztes Mal ${esc(p.ref)}, jetzt ${esc(p.neu)} ${esc(einheitKurz(t.einheit))}. Das ist ein großer Sprung.
+          ${frei && p ? `<div class="check" role="alert"><b>Stimmt das?</b> Letztes Mal ${esc(p.ref)}, jetzt ${esc(p.neu)} ${esc(einheitKurz(t.einheit))}. Das ist ein großer Sprung.
             <div class="row-btns"><button class="btn" type="button" data-ok="${esc(t.zelle)}">Ja, stimmt</button><button class="btn sec" type="button" data-fix="${esc(t.zelle)}">Korrigieren</button></div></div>` : ''}
           ${offen ? `<div class="chart">${chartBox(t, k)}</div>` : ''}</div>`;
       });
@@ -767,8 +910,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   function senden() {
     const jobs = Object.keys(S.wartet).map(woche => {
       const a = S.wartet[woche]; delete S.wartet[woche];
-      const liste = Object.keys(a).map(z => ({ zelle: z, wert: a[z], hinweis: S.hinweise[z] || '' }));
-      liste.forEach(x => { delete S.hinweise[x.zelle]; });
+      const liste = Object.keys(a).map(z => ({ zelle: z, wert: a[z], hinweis: S.hinweise[z] || '', datum: (S.meta[z] || {}).datum || '', anlass: (S.meta[z] || {}).anlass || '' }));
+      liste.forEach(x => { delete S.hinweise[x.zelle]; delete S.meta[x.zelle]; });
       return api('speichern', S.k, woche, liste).catch(e => { S.wartet[woche] = Object.assign(a, S.wartet[woche] || {}); throw e; });
     });
     Promise.all(jobs).then(() => { status('Gespeichert', 'ok'); toast(echt ? 'Gespeichert' : 'Vorschau: würde jetzt gespeichert'); })
@@ -812,6 +955,15 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (ok) { const z = ok.dataset.ok, f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === z), p = S.pruef[z]; delete S.pruef[z];
       testSpeichern(f, t, p.neu, 'vorher ' + p.ref + ', Athlet hat bestätigt'); return; }
     const pc = e.target.closest('[data-pace]'); if (pc) { paceEditor(pc); return; }
+    const zo = e.target.closest('[data-zoek]'); if (zo) { S.zoek[zo.dataset.zoek] = !S.zoek[zo.dataset.zoek]; render(); return; }
+    const fl = e.target.closest('[data-flach]');
+    if (fl) { const f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === fl.dataset.flach), key = S.d.heute + '|' + schluessel(t);
+      S.d.messwerte = S.d.messwerte || {}; const mw = S.d.messwerte[key] = S.d.messwerte[key] || {}, alt = mw.flach;
+      mw.flach = alt === 'ja' ? 'nein' : 'ja'; render(); status('Speichert …');
+      api('flach', S.k, S.d.heute, t.bereich, t.name, mw.flach === 'ja')
+        .then(() => { status('Gespeichert', 'ok'); toast(echt ? 'Gespeichert' : 'Vorschau: würde jetzt gespeichert'); })
+        .catch(err => { mw.flach = alt; render(); status('Nicht gespeichert', 'err'); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
+      return; }
     const sb = e.target.closest('[data-std]');
     if (sb) { const f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === sb.dataset.std), alt = t.bedingung;
       t.bedingung = !alt; render(); status('Speichert …');
@@ -835,7 +987,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       return;
     }
     const fix = e.target.closest('[data-fix]');
-    if (fix) { const z = fix.dataset.fix; delete S.pruef[z]; render(); const inp = document.getElementById('v_' + z); if (inp) { inp.focus(); inp.select(); } return; }
+    if (fix) { const z = fix.dataset.fix; delete S.pruef[z]; render(); const inp = document.getElementById('v_' + z) || document.getElementById('h_' + z); if (inp) { inp.focus(); inp.select(); } return; }
     if (e.target.id === 'stdEin') {
       const w = S.d.daten[S.wocheZ];
       zTage(w).forEach((t, i) => ['vm', 'nm'].forEach((h, j) => {
@@ -855,6 +1007,28 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (e.target.id === 'krank') {
       const f = finde(S.d.heute); f.t.krank = e.target.checked;
       merken(f.w.name, f.t.krankZelle, e.target.checked); render(); return;
+    }
+    if (e.target.id === 'nichtgut') {
+      const an = e.target.checked, heute = S.d.heute; S.d.befinden = S.d.befinden || {};
+      const alt = S.d.befinden[heute]; if (an) S.d.befinden[heute] = 'nicht gut'; else delete S.d.befinden[heute];
+      render(); status('Speichert …');
+      api('befinden', S.k, heute, 'nicht gut', an)
+        .then(() => { status('Gespeichert', 'ok'); toast(an ? 'Gute Besserung! Bitte oben den Ruhepuls eintragen.' : 'Gespeichert'); })
+        .catch(err => { if (alt) S.d.befinden[heute] = alt; else delete S.d.befinden[heute]; render(); status('Nicht gespeichert', 'err'); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
+      return;
+    }
+    const zh = e.target.dataset && e.target.dataset.heute;
+    if (zh) {
+      const wert = e.target.value.trim();
+      if (wert && !/^\d+([.,]\d+)?$|^\d{1,2}:\d{2}$/.test(wert)) { toast('Bitte nur eine Zahl eintragen, z. B. 62,5'); return; }
+      const f = finde(S.d.heute), t = f.w.tests.find(x => x.zelle === zh), alt = ((S.d.messwerte || {})[S.d.heute + '|' + schluessel(t)] || {}).wert || '';
+      if (alt === wert) { delete S.pruef[zh]; render(); return; }
+      S.meta[zh] = { datum: S.d.heute, anlass: e.target.dataset.anlass || '' };
+      const ref = alt || t.wert || t.zuletzt, a = zahl(ref), n = zahl(wert);
+      const g = S.d.grenzen ? (S.d.grenzen[schluessel(t)] != null ? S.d.grenzen[schluessel(t)] : S.d.grenzen.standard) : 25;
+      if (wert && a && n !== null && Math.abs(n - a) / a * 100 > g) { S.pruef[zh] = { neu: wert, ref: ref }; render(); return; }
+      delete S.pruef[zh]; testSpeichern(f, t, wert, '');
+      return;
     }
     const z = e.target.dataset && e.target.dataset.test;
     if (z) {
@@ -895,6 +1069,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
   }
   function testSpeichern(f, t, wert, hinweis) {
     const alt = t.wert; t.wert = wert;
+    const mt = S.meta[t.zelle];
+    if (mt) { S.d.messwerte = S.d.messwerte || {}; const key = mt.datum + '|' + schluessel(t); S.d.messwerte[key] = Object.assign(S.d.messwerte[key] || {}, { wert: wert }); }
     if (wert && t.bedingung === false) setTimeout(() => toast('Gespeichert. Bitte noch bestätigen: Standardbedingungen erfüllt?'), 1600);
     S.hinweise[t.zelle] = hinweis;
     merken(f.w.name, t.zelle, wert);
