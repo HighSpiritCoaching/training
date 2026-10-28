@@ -479,19 +479,14 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
     if (/ergo/.test(alles) && /ga\s*2/.test(alles)) add(such(/^ergometer/), 'Ergometer GA2', zeilen.findIndex(l => /ergo/.test(l)));
     return out;
   }
-  // Morgens: Gewicht Mo/Mi/Sa, Größe am Monatsersten, Ruhepuls (erste 2 Wochen jeden 2. Tag, bei krank / nicht gut)
+  // Morgens: Gewicht Mo/Mi/Sa, Größe am Monatsersten, Ruhepuls (nur erste 2 Wochen ab App-Start, jeden 2. Tag)
   function morgenFelder(f) {
     const heute = S.d.heute, d = isoDate(heute), liste = [];
     const such = re => f.w.tests.find(t => re.test(t.name.toLowerCase()));
     if ([1, 3, 6].includes(d.getDay())) liste.push([such(/^körpergewicht/), 'Morgens nüchtern, nach dem Toilettengang']);
     if (d.getDate() === 1) liste.push([such(/^körpergröße|^körpergrösse/), 'Einmal im Monat, am Monatsersten']);
-    const bef = S.d.befinden || {}, gestern = plusTage(heute, -1), gf = finde(gestern);
     const diff = S.d.appStart ? Math.round((isoDate(heute) - isoDate(S.d.appStart)) / 86400000) : -1;
-    let rp = '';
-    if (f.t.krank || bef[heute]) rp = 'Morgens direkt nach dem Aufstehen messen. Vergessen? Dann morgen früh nachtragen.';
-    else if ((gf && gf.t.krank) || bef[gestern]) rp = 'Gestern ging es dir nicht gut: bitte heute früh messen.';
-    else if (diff >= 0 && diff < 14 && diff % 2 === 0) rp = 'Morgens direkt nach dem Aufstehen, noch im Liegen.';
-    if (rp) liste.push([such(/^ruhepuls/), rp]);
+    if (diff >= 0 && diff < 14 && diff % 2 === 0) liste.push([such(/^ruhepuls/), 'Morgens direkt nach dem Aufstehen, noch im Liegen.']);
     return liste.filter(x => x[0]);
   }
   // kein Häkchen „Standardbedingungen“ bei Trittfrequenz und Wattkurbel (Hannes)
@@ -681,8 +676,8 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       html += '</div>';
     }
     if (S.d.rechte.befinden) html += befindenKarte(f);
-    if (S.d.rechte.krank) html += `<div class="card"><label class="switch" for="krank"><span><b>Ich bin heute krank</b><br><span class="muted">Hannes sieht es sofort. Trag oben bitte deinen Ruhepuls ein.</span></span><input type="checkbox" id="krank" ${t.krank ? 'checked' : ''}></label>
-      <label class="switch" for="nichtgut"><span><b>Ich fühle mich nicht gut</b><br><span class="muted">Dann oben den Ruhepuls von heute früh eintragen.</span></span><input type="checkbox" id="nichtgut" class="warn" ${(S.d.befinden || {})[heute] ? 'checked' : ''}></label></div>`;
+    if (S.d.rechte.krank) html += `<div class="card"><label class="switch" for="krank"><span><b>Ich bin heute krank</b><br><span class="muted">Hannes sieht es sofort.</span></span><input type="checkbox" id="krank" ${t.krank ? 'checked' : ''}></label>
+      <label class="switch" for="nichtgut"><span><b>Ich fühle mich nicht gut</b><br><span class="muted">Hannes sieht es sofort.</span></span><input type="checkbox" id="nichtgut" class="warn" ${(S.d.befinden || {})[heute] ? 'checked' : ''}></label></div>`;
     const v = S.d.daten[f.w.name].video;
     if (v && /^https?:\/\//.test(v)) html += `<div class="card"><div class="card-h"><h3>Video-Analyse</h3></div><a class="link" href="${esc(v)}" target="_blank" rel="noopener">Video von Hannes ansehen</a></div>`;
     html += `<img class="logo" src="logo.png" alt="High Spirit Strength and Conditioning, Hannes Slavik">`;
@@ -1086,7 +1081,7 @@ textarea.mine-in { min-height: 64px; resize: vertical; }
       const alt = S.d.befinden[heute]; if (an) S.d.befinden[heute] = 'nicht gut'; else delete S.d.befinden[heute];
       render(); status('Speichert …');
       api('befinden', S.k, heute, 'nicht gut', an)
-        .then(() => { status('Gespeichert', 'ok'); toast(an ? 'Gute Besserung! Bitte oben den Ruhepuls eintragen.' : 'Gespeichert'); })
+        .then(() => { status('Gespeichert', 'ok'); toast(an ? 'Gute Besserung!' : 'Gespeichert'); })
         .catch(err => { if (alt) S.d.befinden[heute] = alt; else delete S.d.befinden[heute]; render(); status('Nicht gespeichert', 'err'); toast(err && err.message ? err.message : 'Nicht gespeichert'); });
       return;
     }
